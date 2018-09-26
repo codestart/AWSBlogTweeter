@@ -1,0 +1,28 @@
+{
+  "name": "awsblogtweeter",
+  "version": "1.0.0",
+  "description": "Tweet out AWS Blog entries",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codestart/AWSBlogTweeter.git"
+  },
+  "keywords": [
+    "aws",
+    "blog",
+    "twitter"
+  ],
+  "author": "Andoni OConchubhair",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/codestart/AWSBlogTweeter/issues"
+  },
+  "homepage": "https://github.com/codestart/AWSBlogTweeter#readme",
+  "dependencies": {
+    "request": "^2.88.0",
+    "yargs": "^12.0.2"
+  }
+}
