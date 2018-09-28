@@ -29,7 +29,8 @@ awsblog.getBlogPost('SortOrderValue', false, argv.limit, 'en_US', (error, blogPo
   //  console.log(JSON.stringify(blogPosts, undefined, 4));
     for(var i = 0; i < blogPosts.items.length; i++) {
       console.log(blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
-      twitter.sendTweet(blogPosts.items[i].additionalFields.link);
+      twitter.getSettings();
+//      twitter.sendTweet(blogPosts.items[i].additionalFields.link);
     }
   }
 });
