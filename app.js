@@ -6,9 +6,10 @@ const twitter = require('./twitter/twitter.js');
 const argv = yargs
   .options({
     l: {
-      demand: true,
+      demand: false,
       alias: 'limit',
       describe: 'Number of blog entries to retrieve.',
+      default: 1,
       string: true // make sure an address is there!
     }
   })
