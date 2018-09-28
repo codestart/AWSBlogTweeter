@@ -15,12 +15,7 @@ const argv = yargs
   .help()
   .alias('help', 'h')
   .argv;
-/*
-{
-  blogpostId: body.items[0].id,
-  url: body.items[0].additionalFields.link
-}
-*/
+
 awsblog.getBlogPost('SortOrderValue', false, argv.limit, 'en_US', (error, blogPosts) => {
   if(error) {
     console.log('Oops! There was an error: ' + error);
@@ -29,8 +24,7 @@ awsblog.getBlogPost('SortOrderValue', false, argv.limit, 'en_US', (error, blogPo
   //  console.log(JSON.stringify(blogPosts, undefined, 4));
     for(var i = 0; i < blogPosts.items.length; i++) {
       console.log(blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
-      twitter.getSettings();
-//      twitter.sendTweet(blogPosts.items[i].additionalFields.link);
+      twitter.sendTweet(blogPosts.items[i].additionalFields.link);
     }
   }
 });
