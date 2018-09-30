@@ -1,35 +1,35 @@
-const yargs = require('yargs');
+const dateTime = require('date-and-time');
 
 const awsblog = require('./awsblog/index.js');
 const twitter = require('./twitter/twitter.js');
 
-const argv = yargs
-  .options({
-    l: {
-      demand: false,
-      alias: 'limit',
-      describe: 'Number of blog entries to retrieve.',
-      default: 2,
-      string: true // make sure an address is there!
-    }
-  })
-  .help()
-  .alias('help', 'h')
-  .argv;
-
 // This wrapper is required by AWS Lambda
 exports.sendTweets = function (event, context, callback) {
   console.log('Beginning sendTweets() function: ');
-  awsblog.getBlogPost('SortOrderValue', false, 5, 'en_US', (error, blogPosts) => {
+  const postResult = awsblog.getBlogPost('SortOrderValue', false, 5, 'en_US', (error, blogPosts) => {
     if(error) {
       console.log('Oops! There was an error: ' + error);
+      callback(error);
     }
     else {
     //  console.log(JSON.stringify(blogPosts, undefined, 4));
-      for(var i = 0; i < blogPosts.items.length; i++) {
-        console.log(blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
+
+      // Work from the oldest back to 0 (the newest)
+      for(var i = blogPosts.items.length - 1; i >= 0; i--) {
+        // e.g.:  "2018-09-30T15:46:10+0000"
+        var blogPostTimestamp = dateTime.parse(blogPosts.items[i].dateUpdated, "YYYY-MM-DDTHH:mm:ss+0000");
+        var currentTime = new Date();
+        const FOUR_HOURS = 1000 * 60 * 60 * 4;
+        const BLOG_POST_AGE = currentTime - blogPostTimestamp;
+
+        if(BLOG_POST_AGE < FOUR_HOURS) {
+          console.log(blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
+        }
+
         // twitter.sendTweet(blogPosts.items[i].additionalFields.link);
       }
     }
   });
+
+  callback(undefined, postResult);
 };
