@@ -21,12 +21,17 @@ exports.sendTweets = function (event, context, callback) {
         var currentTime = new Date();
         const FOUR_HOURS = 1000 * 60 * 60 * 4;
         const BLOG_POST_AGE = currentTime - blogPostTimestamp;
+        console.log('Blog Post Age: ' + BLOG_POST_AGE);
+        console.log('Age Diff: ' + (BLOG_POST_AGE - FOUR_HOURS));
+        console.log('Blog post timestamp: ' + blogPosts.items[i].dateUpdated);
+        console.log('Post details: ' + blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
 
         if(BLOG_POST_AGE < FOUR_HOURS) {
-          console.log(blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
+          console.log('** POSTED **');
+//           callback(undefined, blogPosts.items[i].id + ') ' + blogPosts.items[i].additionalFields.link);
+          twitter.sendTweet(blogPosts.items[i].additionalFields.link);
         }
 
-        // twitter.sendTweet(blogPosts.items[i].additionalFields.link);
       }
     }
   });
