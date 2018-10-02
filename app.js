@@ -6,7 +6,7 @@ const twitter = require('./twitter/twitter.js');
 // This wrapper is required by AWS Lambda
 exports.sendTweets = function (event, context, callback) {
   var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-  var HOURS_IN_PERIOD = process.env.HOURS_IN_PERIOD;
+  var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
   console.log('Beginning sendTweets() function: ');
   const postResult = awsblog.getBlogPost('SortOrderValue', false, NUMBER_TO_CHECK, 'en_US', (error, blogPosts) => {
     if(error) {
@@ -23,7 +23,7 @@ exports.sendTweets = function (event, context, callback) {
         strTime = strTime.substr(0, "YYYY-MM-DDTHH:mm:ss".length);
         var blogPostTimestamp = dateTime.parse(strTime, "YYYY-MM-DDTHH:mm:ss");
         var currentTime = new Date();
-        const FOUR_HOURS = 1000 * 60 * 60 * HOURS_IN_PERIOD;
+        const FOUR_HOURS = 1000 * 60 * MINUTES_IN_PERIOD;
         const BLOG_POST_AGE = currentTime - blogPostTimestamp;
         console.log('Blog Post Age: ' + BLOG_POST_AGE);
         console.log('Age Diff: ' + (BLOG_POST_AGE - FOUR_HOURS));
