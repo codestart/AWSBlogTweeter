@@ -22,5 +22,68 @@ var getBlogPost = (orderBy, sortAscending, limit, locale, callback) => {
     }
   })
 };
+var awsBlogSections = {
+    "aws": "News",
+    "podcasts": "Podcast",
+    "architecture": "Architecture",
+    "deardevopsabby": "Abby",
+    "apn": "AWS Partner Network",
+    "awsmarketplace": "Marketplace",
+    "big-data": "Big Data",
+    "business-productivity": "Business Productivity",
+    "contact-center": "Contact Center",
+    "compute": "Compute",
+    "database": "Database",
+    "desktop-and-application-streaming": "Desktop and Application Streaming",
+    "developer": "Developer",
+    "devops": "DevOps",
+    "enterprise-strategy": "Enterprise Strategy",
+    "gametech": "Game Tech",
+    "iot": "Internet of Things",
+    "machine-learning": "Machine Learning",
+    "mt": "Management Tools",
+    "media": "Media",
+    "messaging-and-targeting": "Messaging And Targeting",
+    "mobile": "Mobile",
+    "networking-and-content-delivery": "Networking and Content Delivery",
+    "opensource": "Open Source",
+    "publicsector": "Public Sector",
+    "awsforsap": "SAP",
+    "security": "Security Identity and Compliance",
+    "startups": "Startups"};
 
-module.exports.getBlogPost = getBlogPost;
+var awsBlogHashtags = {
+    "aws": "AWSNews",
+    "podcasts": "AWSPodcast",
+    "architecture": "AWSArchitecture",
+    "deardevopsabby": "AWSAbby",
+    "apn": "AWSPartners",
+    "awsmarketplace": "AWSMarket",
+    "big-data": "AWSBigData",
+    "business-productivity": "AWSBusiness",
+    "contact-center": "AWSContactCenter",
+    "compute": "AWSCompute",
+    "database": "AWSDB",
+    "desktop-and-application-streaming": "AWSStreaming",
+    "developer": "AWSDev",
+    "devops": "AWSDevOps",
+    "enterprise-strategy": "AWSEnterprise",
+    "gametech": "AWSGame",
+    "iot": "AWSIOT",
+    "machine-learning": "AWSMachineLearning",
+    "mt": "AWSManagementTools",
+    "media": "AWSMedia",
+    "messaging-and-targeting": "AWSMessagingTargeting",
+    "mobile": "AWSMobile",
+    "networking-and-content-delivery": "AWSNetworkingCDN",
+    "opensource": "AWSOpenSource",
+    "publicsector": "AWSPublicSector",
+    "awsforsap": "AWSSAP",
+    "security": "AWSSecurity",
+    "startups": "AWSStartups"};
+
+module.exports = {
+    getBlogPost: getBlogPost,
+    awsBlogSections: awsBlogSections,
+    awsBlogHashtags: awsBlogHashtags
+  };
