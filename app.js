@@ -1,16 +1,22 @@
 const dateTime = require('date-and-time');
 
 const awsblog = require('./awsblog/index.js');
+const dynamo = require('./dynamodb/index.js');
 const twitter = require('./twitter/twitter.js');
 
 // This wrapper is required by AWS Lambda
 exports.sendTweets = function (event, context, callback) {
-  var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-  var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
+  var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK | 3;
+  var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD | 5;
   var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
 
   console.log('Beginning sendTweets() function: ');
   const postResult = awsblog.getBlogPost('SortOrderValue', false, NUMBER_TO_CHECK, 'en_US', (error, blogPosts) => {
+    var callbackDB = dynamo.queryDatabase('iot', (error, results) => {
+        // var resultsLocal = results;
+        console.log('BlogSection is: ', results.BlogSection.S, 'Hashtag is: ', results.Hashtag.S);
+    });
+
     if(error) {
       console.log('Oops! There was an error: ' + error);
       callback(error);
@@ -40,10 +46,11 @@ exports.sendTweets = function (event, context, callback) {
 
         if(BLOG_POST_AGE < PERIOD) {
           console.log('** POSTED **');
-          twitter.sendTweet('The AWS ' + awsblog.awsBlogSections[sectionName] + ' Blog #' + awsblog.awsBlogHashtags[sectionName] + ' ' + blogPosts.items[i].additionalFields.link);
+//          twitter.sendTweet('The AWS ' + awsblog.awsBlogSections[sectionName] + ' Blog #' + awsblog.awsBlogHashtags[sectionName] + ' ' + blogPosts.items[i].additionalFields.link);
           console.log(awsblog.awsBlogSections[sectionName] + ' #' + awsblog.awsBlogHashtags[sectionName] + ' ' + blogPosts.items[i].additionalFields.link);
         }
       }
+      callback(undefined, 'No Return Value Needed ;-)');
     }
   });
 };
