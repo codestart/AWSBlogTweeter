@@ -7,7 +7,7 @@ AWS.config.update({region: 'eu-west-1'});
 // Create DynamoDB service object
 var ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
-var queryDatabase = async (event, context) => {
+var queryDatabase = async (event, context, body) => {
 //  console.log('Event is: ', JSON.stringify(event, undefined, 4));
 
   var params = {
@@ -22,7 +22,8 @@ var queryDatabase = async (event, context) => {
   try {
     var data = await ddb.batchGetItem(params).promise();
     var data = reArrangeEntries(data);
-    return { statusCode: 200, body: { params, data } };
+    // Debugging Return: return { statusCode: 200, body: { params, data } };
+    return { statusCode: 200, ref: data, body };
   } catch (error) {
     return {
       statusCode: 400,
