@@ -63,8 +63,12 @@ exports.sendTweets = function (event, context, callback) {
         'The ' + resolve.ref[element.section][0] +
         ' Blog #' + resolve.ref[element.section][1] +
         ' ' + element.url;
-        
+
+      // Replace this line with a call to the Twitter API
+      // Do I have to account for batch sending there too????
       console.log(output);
+
+      //twitter.sendTweet(output);
     }
 //    console.log('2nd in chain Blog: ', JSON.stringify(resolve, undefined, 4));
   }).catch((error) => {
