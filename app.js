@@ -1,7 +1,5 @@
-const dateTime = require('date-and-time');
 const axios = require('axios');
 
-const awsblog = require('./awsblog/index.js');
 const dynamo = require('./dynamodb/index.js');
 const twitter = require('./twitter/twitter.js');
 
@@ -18,11 +16,13 @@ exports.sendTweets = function (event, context, callback) {
   const sortAscending = false;
   const limit = NUMBER_TO_CHECK;
   const locale = 'en_US';
-  const awsBlogUrl = `https://aws.amazon.com/api/dirs/blog-posts/items?order_by=${orderBy}&sort_ascending=${sortAscending}&limit=${limit}&locale=${locale}`;
+  const awsBlogUrl =
+    `https://aws.amazon.com/api/dirs/blog-posts/items?` +
+    `order_by=${orderBy}` +
+    `&sort_ascending=${sortAscending}` +
+    `&limit=${limit}` +
+    `&locale=${locale}`;
 // https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
-  //  const postResult = awsblog.getBlogPost('SortOrderValue', false, NUMBER_TO_CHECK, 'en_US', (error, blogPosts) => {
-
-//  console.log('URL is: ', awsBlogUrl);
 
   axios.get(awsBlogUrl).then((response) => {
     // success case expression:
@@ -34,10 +34,9 @@ exports.sendTweets = function (event, context, callback) {
     // Work from the oldest back to 0 (the newest)
     blog_post_items:
     for(var i = blogPosts.items.length - 1; i >= 0; i--) {
-      // e.g.:  "2018-09-30T15:46:10+0000"
       var strTime = blogPosts.items[i].dateUpdated;
       strTime = strTime.substr(0, DATE_FORMAT.length);
-      var blogPostTimestamp = dateTime.parse(strTime, DATE_FORMAT);
+      var blogPostTimestamp = new Date(strTime + 'Z');
       var currentTime = new Date();
       const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
       const BLOG_POST_AGE = currentTime - blogPostTimestamp;
@@ -48,7 +47,7 @@ exports.sendTweets = function (event, context, callback) {
 
       urlList[i] = {url: strUrl, section: sectionName};
 
-      if(true) { //BLOG_POST_AGE < PERIOD) {
+      if(BLOG_POST_AGE < PERIOD) {
         for(var x = 0; x < event.length; x++) {
           if(event[x].URLSection.S === sectionName) continue blog_post_items;
         }
@@ -64,13 +63,9 @@ exports.sendTweets = function (event, context, callback) {
         ' Blog #' + resolve.ref[element.section][1] +
         ' ' + element.url;
 
-      // Replace this line with a call to the Twitter API
-      // Do I have to account for batch sending there too????
-      console.log(output);
-
-      //twitter.sendTweet(output);
+      // console.log(output);
+      twitter.sendTweet(output);
     }
-//    console.log('2nd in chain Blog: ', JSON.stringify(resolve, undefined, 4));
   }).catch((error) => {
       console.log('Oops! There was an error: ' + error);
       callback(error);
