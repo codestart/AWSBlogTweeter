@@ -55,16 +55,27 @@ exports.sendTweets = function (event, context, callback) {
         eventNo++;
       }
     }
-    return dynamo.queryDatabase(event, undefined, urlList);
+    return event.length > 0 ? dynamo.queryDatabase(event, undefined, urlList) : {statusCode: 200, body:[]};
   }).then((resolve) => {
-    for(element of resolve.body) {
-      var output =
-        'The ' + resolve.ref[element.section][0] +
-        ' Blog #' + resolve.ref[element.section][1] +
-        ' ' + element.url;
+    if(resolve.statusCode === 200) {
+      for(element of resolve.body) {
+        var output =
+          'The ' + resolve.ref[element.section][0] +
+          ' Blog #' + resolve.ref[element.section][1] +
+          ' ' + element.url;
 
-      // console.log(output);
-      twitter.sendTweet(output);
+        // console.log(output);
+        try {
+          twitter.sendTweet(output);
+        }
+        catch(error) {
+          console.log('Error is: ', error);
+        }
+      }
+    }
+    else {
+      console.log('Status Code is: ', resolve.statusCode);
+      console.log('Error Message is: ', resolve.error);
     }
   }).catch((error) => {
       console.log('Oops! There was an error: ' + error);
