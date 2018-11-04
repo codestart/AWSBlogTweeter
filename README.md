@@ -15,3 +15,10 @@ Every Y minutes:
 Add a token to DynamoDB with the timestamp of the last poll.
 This would allow poll-interval to be changed without possibility of missing a blog posting.
 Currently Poll-length is parameterized in the application (Y above).
+
+## Development changes
+1. Delete all CloudWatch logs
+2. Comment out Twitter line if appropriate
+3. Amend Env Variables to suit test (2880 = 2 Days for example as MINUTES_IN_PERIOD)
+4. Delete previous tweets if necessary to avoid duplication error (unless testing error messages)
+5. Replace files changed and upload new copy of .zip file
