@@ -17,8 +17,9 @@ This would allow poll-interval to be changed without possibility of missing a bl
 Currently Poll-length is parameterized in the application (Y above).
 
 ## Development changes
-1. Delete all CloudWatch logs
-2. Comment out Twitter line if appropriate
-3. Amend Env Variables to suit test (2880 = 2 Days for example as MINUTES_IN_PERIOD)
-4. Delete previous tweets if necessary to avoid duplication error (unless testing error messages)
-5. Replace files changed and upload new copy of .zip file
+1. Remove the CloudWatch trigger for the Lambda
+2. Delete all CloudWatch logs
+3. Comment out Twitter line if appropriate
+4. Amend Env Variables to suit test (2880 = 2 Days for example as MINUTES_IN_PERIOD)
+5. Delete previous tweets if necessary to avoid duplication error (unless testing error messages)
+6. Replace files changed and upload new copy of .zip file

@@ -42,6 +42,7 @@ exports.sendTweets = function (event, context, callback) {
       const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
       const BLOG_POST_AGE = currentTime - blogPostTimestamp;
 
+      var author = JSON.parse(blogPosts.items[i].author);
       var strUrl = blogPosts.items[i].additionalFields.link;
       var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
       var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
@@ -50,7 +51,7 @@ exports.sendTweets = function (event, context, callback) {
 
       if(BLOG_POST_AGE < PERIOD) {
         // Only add URLs to be posted, to the list (not the number-to-check)
-        urlList[unTweetedUrlCounter++] = {url: strUrl, section: sectionName};
+        urlList[unTweetedUrlCounter++] = {url: strUrl, section: sectionName, author};
         for(var x = 0; x < event.length; x++) {
           // More than one blog post is new - checking for duplicate section names to query only unique names
           if(event[x].URLSection.S === sectionName) continue blog_post_items;
@@ -67,7 +68,13 @@ exports.sendTweets = function (event, context, callback) {
         var output =
           'The ' + resolve.ref[element.section][0] +
           ' Blog #' + resolve.ref[element.section][1] +
-          ' ' + element.url;
+          ' ' + element.url +
+          ' by: ';
+          for (var person of element.author) {
+            output += person;
+            if(element.author[element.author.length - 1] !== person)
+              output += ' and '
+          }
 
         console.log('Tweeting:', output);
         // try {
