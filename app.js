@@ -9,6 +9,7 @@ exports.sendTweets = function (event, context, callback) {
 
   var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
   var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
+  var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
   var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
   var DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -69,16 +70,13 @@ exports.sendTweets = function (event, context, callback) {
           'The ' + resolve.ref[element.section][0] +
           ' Blog #' + resolve.ref[element.section][1] +
           ' ' + element.url +
-          ' by: ';
-          for (var person of element.author) {
-            output += person;
-            if(element.author[element.author.length - 1] !== person)
-              output += ' and '
-          }
+          authorsList();
 
         console.log('Tweeting:', output);
         try {
-          twitter.sendTweet(output);
+          if(TWITTER_ON) {
+            twitter.sendTweet(output);
+          }
         }
         catch(error) {
           console.log('Error is: ', error);
@@ -94,4 +92,25 @@ exports.sendTweets = function (event, context, callback) {
       callback(error);
   });
   callback(undefined, 'No Return Value Needed ;-)');
+}
+
+/**
+ * AWS Seem to use 'publicsector' as a default author value. It's of no interest
+ * to us.
+ */
+var authorsList = () => {
+  const STUB = ' by: ';
+  const ABANDON_VALUE = 'publicsector';
+  var abandonReturn = false;
+  var output = '';
+
+  for (var person of element.author) {
+    if(person === ABANDON_VALUE) abandonReturn = true;
+    output += person;
+    if(element.author[element.author.length - 1] !== person) {
+      output += ' and ';
+    }
+  }
+
+  return (abandonReturn ? '' : STUB + output);
 }
