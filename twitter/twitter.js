@@ -13,7 +13,7 @@ var sendTweet = (tweetBodyText) => {
   });
 
   client.post('statuses/update', {status: tweetBodyText},  function(error, tweet, response) {
-    if(error) throw error;
+    if(error) console.log(error);
     console.log(tweet);  // Tweet body.
     console.log(response);  // Raw response object.
   });

@@ -5,7 +5,7 @@ const twitter = require('./twitter/twitter.js');
 
 // This wrapper is required by AWS Lambda
 exports.sendTweets = function (event, context, callback) {
-  console.log('Beginning sendTweets() function: ');
+  console.log('Beginning sendTweets()');
 
   var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
   var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
@@ -31,6 +31,7 @@ exports.sendTweets = function (event, context, callback) {
     var event = [];
     var urlList = []; // Must be same size or bigger than event array above.
     var eventNo = 0;
+    var unTweetedUrlCounter = 0;
     // Work from the oldest back to 0 (the newest)
     blog_post_items:
     for(var i = blogPosts.items.length - 1; i >= 0; i--) {
@@ -45,12 +46,16 @@ exports.sendTweets = function (event, context, callback) {
       var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
       var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
 
-      urlList[i] = {url: strUrl, section: sectionName};
+      console.log('BLOG_POST_AGE < PERIOD:', (BLOG_POST_AGE < PERIOD));
 
       if(BLOG_POST_AGE < PERIOD) {
+        // Only add URLs to be posted, to the list (not the number-to-check)
+        urlList[unTweetedUrlCounter++] = {url: strUrl, section: sectionName};
         for(var x = 0; x < event.length; x++) {
+          // More than one blog post is new - checking for duplicate section names to query only unique names
           if(event[x].URLSection.S === sectionName) continue blog_post_items;
         }
+        // Create a list of unique section names
         event[eventNo] = {'URLSection':{S:sectionName}};
         eventNo++;
       }
@@ -64,13 +69,13 @@ exports.sendTweets = function (event, context, callback) {
           ' Blog #' + resolve.ref[element.section][1] +
           ' ' + element.url;
 
-        // console.log(output);
-        try {
-          twitter.sendTweet(output);
-        }
-        catch(error) {
-          console.log('Error is: ', error);
-        }
+        console.log('Tweeting:', output);
+        // try {
+        //   twitter.sendTweet(output);
+        // }
+        // catch(error) {
+        //   console.log('Error is: ', error);
+        // }
       }
     }
     else {
@@ -78,7 +83,7 @@ exports.sendTweets = function (event, context, callback) {
       console.log('Error Message is: ', resolve.error);
     }
   }).catch((error) => {
-      console.log('Oops! There was an error: ' + error);
+      console.log('Oops! There was an error:', error);
       callback(error);
   });
   callback(undefined, 'No Return Value Needed ;-)');
