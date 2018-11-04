@@ -77,12 +77,12 @@ exports.sendTweets = function (event, context, callback) {
           }
 
         console.log('Tweeting:', output);
-        // try {
-        //   twitter.sendTweet(output);
-        // }
-        // catch(error) {
-        //   console.log('Error is: ', error);
-        // }
+        try {
+          twitter.sendTweet(output);
+        }
+        catch(error) {
+          console.log('Error is: ', error);
+        }
       }
     }
     else {
