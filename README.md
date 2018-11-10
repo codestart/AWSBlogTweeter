@@ -12,10 +12,8 @@ Every Y minutes:
 5. Publish Blog Name, Hashtag & URL to Twitter (possibly multiple times)
 
 ## Updates due
-Add a token to DynamoDB with the timestamp of the last poll.
-This would allow poll-interval to be changed without possibility of missing a blog posting.
-Currently Poll-length is parameterized in the application (Y above).
-We have the authors' names but could we have their Twitter handles instead? We'd have to build-up a DB table of their name vs. Twitter handle to read from. (a) Look up the name (b) if it's not there add it (c) if it is there check for a Twitter handle (updated manually) (d) if there is none use just the name. 
+- Add a token to DynamoDB with the timestamp of the last poll. This would allow poll-interval to be changed without possibility of missing a blog posting. Currently Poll-length is parameterized in the application (Y above).
+- We have the authors' names but could we have their Twitter handles instead? We'd have to build-up a DB table of their name vs. Twitter handle to read from. (a) Look up the name (b) if it's not there add it (c) if it is there check for a Twitter handle (updated manually) (d) if there is none use just the name. 
 
 ## Development changes
 1. Remove the CloudWatch trigger for the Lambda
