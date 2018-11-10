@@ -23,7 +23,6 @@
   "homepage": "https://github.com/codestart/AWSBlogTweeter#readme",
   "dependencies": {
     "axios": "^0.18.0",
-    "js-yaml": "^3.12.0",
     "npm": "^6.4.1",
     "twitter": "^1.7.1"
   }

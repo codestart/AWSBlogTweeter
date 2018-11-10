@@ -10,6 +10,7 @@ exports.sendTweets = function (event, context, callback) {
   var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
   var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
   var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
+  var TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
   var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
   var DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -67,7 +68,7 @@ exports.sendTweets = function (event, context, callback) {
     if(resolve.statusCode === 200) {
       for(element of resolve.body) {
         var output =
-          'The ' + resolve.ref[element.section][0] +
+          'The AWS ' + resolve.ref[element.section][0] +
           ' Blog #' + resolve.ref[element.section][1] +
           ' ' + element.url +
           authorsList();
@@ -75,7 +76,7 @@ exports.sendTweets = function (event, context, callback) {
         console.log('Tweeting:', output);
         try {
           if(TWITTER_ON) {
-            twitter.sendTweet(output);
+            twitter.sendTweet(output, TWITTER_ACCOUNT);
           }
         }
         catch(error) {
