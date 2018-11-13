@@ -2,3 +2,7 @@ node_modules
 *.yml
 *.zip
 *.csv
+
+# Git won't ignore package.json or package-lock.json as they are already being
+# tracked. This is for twitter.json
+*.json

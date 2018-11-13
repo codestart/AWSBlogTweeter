@@ -5,10 +5,12 @@ const twitter = require('./twitter/twitter.js');
 
 // This wrapper is required by AWS Lambda
 exports.sendTweets = function (event, context, callback) {
-  console.log('Beginning sendTweets() function: ');
+  console.log('Beginning sendTweets()');
 
   var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
   var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
+  var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
+  var TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
   var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
   var DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -31,6 +33,7 @@ exports.sendTweets = function (event, context, callback) {
     var event = [];
     var urlList = []; // Must be same size or bigger than event array above.
     var eventNo = 0;
+    var unTweetedUrlCounter = 0;
     // Work from the oldest back to 0 (the newest)
     blog_post_items:
     for(var i = blogPosts.items.length - 1; i >= 0; i--) {
@@ -41,16 +44,21 @@ exports.sendTweets = function (event, context, callback) {
       const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
       const BLOG_POST_AGE = currentTime - blogPostTimestamp;
 
+      var author = JSON.parse(blogPosts.items[i].author);
       var strUrl = blogPosts.items[i].additionalFields.link;
       var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
       var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
 
-      urlList[i] = {url: strUrl, section: sectionName};
+      console.log('BLOG_POST_AGE < PERIOD:', (BLOG_POST_AGE < PERIOD));
 
       if(BLOG_POST_AGE < PERIOD) {
+        // Only add URLs to be posted, to the list (not the number-to-check)
+        urlList[unTweetedUrlCounter++] = {url: strUrl, section: sectionName, author};
         for(var x = 0; x < event.length; x++) {
+          // More than one blog post is new - checking for duplicate section names to query only unique names
           if(event[x].URLSection.S === sectionName) continue blog_post_items;
         }
+        // Create a list of unique section names
         event[eventNo] = {'URLSection':{S:sectionName}};
         eventNo++;
       }
@@ -60,13 +68,16 @@ exports.sendTweets = function (event, context, callback) {
     if(resolve.statusCode === 200) {
       for(element of resolve.body) {
         var output =
-          'The ' + resolve.ref[element.section][0] +
+          'The AWS ' + resolve.ref[element.section][0] +
           ' Blog #' + resolve.ref[element.section][1] +
-          ' ' + element.url;
+          ' ' + element.url +
+          authorsList();
 
-        // console.log(output);
+        console.log('Tweeting:', output);
         try {
-          twitter.sendTweet(output);
+          if(TWITTER_ON) {
+            twitter.sendTweet(output, TWITTER_ACCOUNT);
+          }
         }
         catch(error) {
           console.log('Error is: ', error);
@@ -78,8 +89,29 @@ exports.sendTweets = function (event, context, callback) {
       console.log('Error Message is: ', resolve.error);
     }
   }).catch((error) => {
-      console.log('Oops! There was an error: ' + error);
+      console.log('Oops! There was an error:', error);
       callback(error);
   });
   callback(undefined, 'No Return Value Needed ;-)');
+}
+
+/**
+ * AWS Seem to use 'publicsector' as a default author value. It's of no interest
+ * to us.
+ */
+var authorsList = () => {
+  const STUB = ' by: ';
+  const ABANDON_VALUE = 'publicsector';
+  var abandonReturn = false;
+  var output = '';
+
+  for (var person of element.author) {
+    if(person === ABANDON_VALUE) abandonReturn = true;
+    output += person;
+    if(element.author[element.author.length - 1] !== person) {
+      output += ' and ';
+    }
+  }
+
+  return (abandonReturn ? '' : STUB + output);
 }
