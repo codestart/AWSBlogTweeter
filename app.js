@@ -64,14 +64,14 @@ exports.sendTweets = function (event, context, callback) {
       }
     }
     return event.length > 0 ? dynamo.queryDatabase(event, undefined, urlList) : {statusCode: 200, body:[]};
-  }).then((resolve) => {
+  }).then(async (resolve) => {
     if(resolve.statusCode === 200) {
       for(element of resolve.body) {
         var output =
           'The AWS ' + resolve.ref[element.section][0] +
           ' Blog #' + resolve.ref[element.section][1] +
           ' ' + element.url +
-          authorsList();
+          await authorsList();
 
         console.log('Tweeting:', output);
         try {
@@ -99,17 +99,22 @@ exports.sendTweets = function (event, context, callback) {
  * AWS Seem to use 'publicsector' as a default author value. It's of no interest
  * to us.
  */
-var authorsList = () => {
+var authorsList = async () => {
   const STUB = ' by: ';
+  const SEPARATOR = ' and ';
   const ABANDON_VALUE = 'publicsector';
+
   var abandonReturn = false;
   var output = '';
 
   for (var person of element.author) {
     if(person === ABANDON_VALUE) abandonReturn = true;
-    output += person;
+    console.log('Author to check: ', person);
+    await dynamo.handleAuthorName(person).then((resolve) => {
+      output += resolve;
+    });
     if(element.author[element.author.length - 1] !== person) {
-      output += ' and ';
+      output += SEPARATOR;
     }
   }
 
