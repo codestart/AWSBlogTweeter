@@ -143,7 +143,7 @@ var isValidTwitterHandle = handle => {
     } else if (null === REG_EXP.exec(handle)) {
       valid = false;
       console.log('Fail validation 2) reg ex', handle);
-    } else if (REG_EXP.exec(handle)[0] !== handle) {
+    } else if (REG_EXP.exec(handle)[0] != handle) {
       valid = false;
       console.log('Fail validation 3) reg ex', handle);
     } else if (handle.toLowerCase().indexOf('twitter') !== -1 || handle.toLowerCase().indexOf('admin') !== -1) {
