@@ -126,7 +126,7 @@ var reArrangeEntries = (data) => {
   return output;
 };
 
-var isValidTwitterHandle = handle => {
+var isValidTwitterHandle = async handle => {
   // Usernames containing the words Twitter or Admin cannot be claimed. No account names can contain Twitter or Admin unless they are official Twitter accounts.
   // Your username cannot be longer than 15 characters. Your name can be longer (50 characters), but usernames are kept shorter for the sake of ease.
   // A username can only contain alphanumeric characters (letters A-Z, numbers 0-9) with the exception of underscores, as noted above. Check to make sure your desired username doesn't contain any symbols, dashes, or spaces.
