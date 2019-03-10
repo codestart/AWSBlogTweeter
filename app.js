@@ -37,7 +37,7 @@ exports.sendTweets = function (event, context, callback) {
     // Work from the oldest back to 0 (the newest)
     blog_post_items:
     for(var i = blogPosts.items.length - 1; i >= 0; i--) {
-      var strTime = blogPosts.items[i].dateUpdated;
+      var strTime = blogPosts.items[i].dateCreated;
       strTime = strTime.substr(0, DATE_FORMAT.length);
       var blogPostTimestamp = new Date(strTime + 'Z');
       var currentTime = new Date();
