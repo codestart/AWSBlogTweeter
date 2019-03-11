@@ -5,8 +5,6 @@ const twitter = require('./twitter/twitter.js');
 
 // This wrapper is required by AWS Lambda
 exports.sendTweets = function (event, context, callback) {
-  console.log('Beginning sendTweets()');
-
   var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
   var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
   var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
@@ -48,8 +46,6 @@ exports.sendTweets = function (event, context, callback) {
       var strUrl = blogPosts.items[i].additionalFields.link;
       var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
       var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
-
-      console.log('BLOG_POST_AGE < PERIOD:', (BLOG_POST_AGE < PERIOD));
 
       if(BLOG_POST_AGE < PERIOD) {
         // Only add URLs to be posted, to the list (not the number-to-check)
