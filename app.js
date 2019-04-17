@@ -9,6 +9,8 @@ exports.sendTweets = function (event, context, callback) {
   var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
   var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
   var TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
+  const ENV = process.env.ENV;
+  
   var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
   var DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -47,6 +49,8 @@ exports.sendTweets = function (event, context, callback) {
       var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
       var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
 
+      recordTweet(blogPosts.items[i], ENV);
+
       if(BLOG_POST_AGE < PERIOD) {
         // Only add URLs to be posted, to the list (not the number-to-check)
         urlList[unTweetedUrlCounter++] = {url: strUrl, section: sectionName, author};
@@ -59,15 +63,17 @@ exports.sendTweets = function (event, context, callback) {
         eventNo++;
       }
     }
-    return event.length > 0 ? dynamo.queryDatabase(event, undefined, urlList) : {statusCode: 200, body:[]};
+    return event.length > 0 ? dynamo.queryDatabase(event, undefined, urlList, ENV) : {statusCode: 200, body:[]};
   }).then(async (resolve) => {
     if(resolve.statusCode === 200) {
-      for(element of resolve.body) {
+      for(var item of resolve.body) {
+        // console.log('resolve.ref:', resolve.ref);
+        // console.log('item.section:', item.section);
         var output =
-          'The AWS ' + resolve.ref[element.section][0] +
-          ' Blog #' + resolve.ref[element.section][1] +
-          ' ' + element.url +
-          await authorsList();
+          'The AWS ' + resolve.ref[item.section][0] +
+          ' Blog #' + resolve.ref[item.section][1] +
+          ' ' + item.url +
+          await authorsList(item, ENV);
 
         console.log('Tweeting:', output);
         try {
@@ -91,11 +97,21 @@ exports.sendTweets = function (event, context, callback) {
   callback(undefined, 'No Return Value Needed ;-)');
 }
 
+var recordTweet = (tweet, env) => {
+  console.log('1author is:', JSON.parse(tweet.author));
+  for (var author of JSON.parse(tweet.author)) {
+    console.log('2author is:', author);
+    dynamo.recordAuthorTweetLink(tweet.id, author, env);
+  }
+
+  dynamo.recordTweetVitals(tweet, env);
+}
+
 /**
  * AWS Seem to use 'publicsector' as a default author value. It's of no interest
  * to us.
  */
-var authorsList = async () => {
+var authorsList = async (elementData, env) => {
   const STUB = ' by: ';
   const SEPARATOR = ' and ';
   const ABANDON_VALUE = 'publicsector';
@@ -103,13 +119,13 @@ var authorsList = async () => {
   var abandonReturn = false;
   var output = '';
 
-  for (var person of element.author) {
+  for (var person of elementData.author) {
     if(person === ABANDON_VALUE) abandonReturn = true;
     console.log('Author to check: ', person);
-    await dynamo.handleAuthorName(person).then((resolve) => {
+    await dynamo.handleAuthorName(person, env).then((resolve) => {
       output += resolve;
     });
-    if(element.author[element.author.length - 1] !== person) {
+    if(elementData.author[elementData.author.length - 1] !== person) {
       output += SEPARATOR;
     }
   }

@@ -2,12 +2,12 @@ var AWS = require('aws-sdk');
 AWS.config.update({region: 'eu-west-1'});
 var ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
-var queryDatabase = async (event, context, body) => {
+var queryDatabase = async (event, context, body, env) => {
 //  console.log('Event is: ', JSON.stringify(event, undefined, 4));
 
   var params = {
     RequestItems: {
-      'AWS_BLOGS': {
+      [`${env}AWS_BLOGS`]: {
         Keys: event,
         ProjectionExpression: 'URLSection, BlogSection, Hashtag'
       }
@@ -16,7 +16,7 @@ var queryDatabase = async (event, context, body) => {
 
   try {
     var data = await ddb.batchGetItem(params).promise();
-    var data = reArrangeEntries(data);
+    var data = reArrangeEntries(data, env);
     // Debugging Return: return { statusCode: 200, body: { params, data } };
     return { statusCode: 200, ref: data, body };
   } catch (error) {
@@ -27,13 +27,13 @@ var queryDatabase = async (event, context, body) => {
   }
 };
 
-var checkAuthorName = async (authorName) => {
+var checkAuthorName = async (authorName, env) => {
   var params = {
-    TableName: "TWITTER_HANDLES",
+    TableName: `${env}TWITTER_HANDLES`,
     ExpressionAttributeValues: {
-        ":s": {S: authorName}
+        ':s': {S: authorName}
     },
-    KeyConditionExpression: "AuthorName = :s",
+    KeyConditionExpression: 'AuthorName = :s',
     ProjectionExpression: 'TwitterHandle'
   };
 
@@ -50,12 +50,93 @@ var checkAuthorName = async (authorName) => {
 
 // Default initial value for Twitter Handle is blank NOT 'NONE' until it has been searched-for!
 // This does not need to be synch'd once it is done!
-var addNewAuthor = (authorName) => {
+var addNewAuthor = (authorName, env) => {
   var returnValue = {};
   var params = {
-    TableName: "TWITTER_HANDLES",
+    TableName: `${env}TWITTER_HANDLES`,
     ReturnConsumedCapacity: "TOTAL",
     Item: {
+      "AuthorName": {
+        S: authorName
+      },
+      "TwitterHandle": {
+        NULL: true
+      },
+      "DateAdded": {
+         N: new Date().getTime() + ""
+      },
+      "CountPosts": {
+        N: 0
+      }
+    }
+  };
+
+  try {
+    returnValue = ddb.putItem(params).promise();
+  } catch (error) {
+    console.log('Error is:', error);
+    returnValue = {
+      statusCode: 400,
+      error: `Could not post: ${error}`
+    };
+  }
+
+  return returnValue;
+}
+
+var recordTweetVitals = async (tweetVitals, env) => {
+  var returnValue = {};
+  var params = {
+    TableName: `${env}BLOG_POSTS`,
+    ReturnConsumedCapacity: "TOTAL",
+    Item: {
+      "ID": {
+        S: tweetVitals.id
+      },
+      "SLUG": {
+        S: tweetVitals.additionalFields.slug
+      },
+      "createdBy": {
+        SS: JSON.parse(tweetVitals.createdBy)
+      },
+      "dateUpdated": {
+        N: new Date(tweetVitals.dateUpdated).getTime() + ""
+      },
+      "dateCreated": {
+        N: new Date(tweetVitals.dateCreated).getTime() + ""
+      },
+      "link": {
+        S: tweetVitals.additionalFields.link
+      },
+      "title": {
+        S: tweetVitals.additionalFields.title
+      }
+    }
+  };
+
+  try {
+    returnValue = ddb.putItem(params).promise();
+  } catch (error) {
+    console.log('Error is:', error);
+    returnValue = {
+      statusCode: 400,
+      error: `Could not post: ${error}`
+    };
+  }
+
+  return returnValue;
+}
+
+// https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#batchWriteItem-property
+var recordAuthorTweetLink = async (id, authorName, env) => {
+  var returnValue = {};
+  var params = {
+    TableName: `${env}POST_AUTHORS`,
+    ReturnConsumedCapacity: "TOTAL",
+    Item: {
+      "PostID": {
+        S: id
+      },
       "AuthorName": {
         S: authorName
       }
@@ -75,14 +156,13 @@ var addNewAuthor = (authorName) => {
   return returnValue;
 }
 
-var handleAuthorName = async (authorName) => {
+var handleAuthorName = async (authorName, env) => {
   var returnValue = '';
-  await checkAuthorName(authorName).then((data) => {
-    // console.log('Data:', data);
-
+  await checkAuthorName(authorName, env).then((data) => {
     if (data.Count === 1 && data.Items[0].TwitterHandle === undefined)
     {
       console.log('Seen before, previously entered in the DB, but not yet checked for a twitter handle.');
+      // TODO: Update DB check count +1
       returnValue = authorName;
     }
     else if(data.Count === 1 && data.Items[0].TwitterHandle.S !== 'NONE')
@@ -90,6 +170,7 @@ var handleAuthorName = async (authorName) => {
       // check does returnValue.Items[0].TwittterHandle.S, begine with an @-sign and have the correct number of characters.
       // TODO-Later: validate against Twitter?
       console.log('Has a twitter and it is:', data.Items[0].TwitterHandle.S);
+      // TODO: Update DB check count +1
       returnValue = data.Items[0].TwitterHandle.S;
       if(!isValidTwitterHandle(returnValue)) {
         returnValue = authorName;
@@ -103,7 +184,7 @@ var handleAuthorName = async (authorName) => {
     else if (data.Count === 0)
     {
       console.log('Never before seen, so enter it in DB and use full name for now.');
-      var confirmation = addNewAuthor(authorName);
+      var confirmation = addNewAuthor(authorName, env);
       console.log('Confirmation:', confirmation);
       returnValue = authorName;
     }
@@ -117,8 +198,8 @@ var handleAuthorName = async (authorName) => {
   return returnValue;
 }
 
-var reArrangeEntries = (data) => {
-  var resultsArr = data.Responses['AWS_BLOGS'];
+var reArrangeEntries = (data, env) => {
+  var resultsArr = data.Responses[`${env}AWS_BLOGS`];
   var output = {};
   for(var result of resultsArr) {
     output[result.URLSection.S] = [result.BlogSection.S, result.Hashtag.S];
@@ -159,5 +240,7 @@ var isValidTwitterHandle = async handle => {
 
 module.exports = {
     queryDatabase,
-    handleAuthorName
+    handleAuthorName,
+    recordTweetVitals,
+    recordAuthorTweetLink
   };
