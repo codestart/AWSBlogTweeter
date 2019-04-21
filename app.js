@@ -98,9 +98,7 @@ exports.sendTweets = function (event, context, callback) {
 }
 
 var recordTweet = (tweet, env) => {
-  console.log('1author is:', JSON.parse(tweet.author));
   for (var author of JSON.parse(tweet.author)) {
-    console.log('2author is:', author);
     dynamo.recordAuthorTweetLink(tweet.id, author, env);
   }
 
