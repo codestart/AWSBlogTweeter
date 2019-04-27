@@ -70,13 +70,13 @@ var addNewAuthor = (authorName, env) => {
         S: authorName
       },
       "TwitterHandle": {
-        NULL: true
+        S: ""
       },
       "DateAdded": {
-        N: new Date().getTime() + ""
+        N: String(new Date().getTime())
       },
       "CountPosts": {
-        N: 0
+        N: String(1)
       }
     }
   };
@@ -110,10 +110,10 @@ var recordTweetVitals = async (tweetVitals, env) => {
         SS: JSON.parse(tweetVitals.createdBy)
       },
       "DateUpdated": {
-        S: String(new Date(tweetVitals.dateUpdated).getTime())
+        N: String(new Date(tweetVitals.dateUpdated).getTime())
       },
       "DateCreated": {
-        S: String(new Date(tweetVitals.dateCreated).getTime())
+        N: String(new Date(tweetVitals.dateCreated).getTime())
       },
       "Link": {
         S: tweetVitals.additionalFields.link

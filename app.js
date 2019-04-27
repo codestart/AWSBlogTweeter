@@ -10,7 +10,7 @@ exports.sendTweets = function (event, context, callback) {
   var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
   var TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
   const ENV = process.env.ENV;
-  
+
   var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
   var DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -24,7 +24,7 @@ exports.sendTweets = function (event, context, callback) {
     `&sort_ascending=${sortAscending}` +
     `&limit=${limit}` +
     `&locale=${locale}`;
-// https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
+  // https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
 
   axios.get(awsBlogUrl).then((response) => {
     // success case expression:
@@ -36,37 +36,48 @@ exports.sendTweets = function (event, context, callback) {
     var unTweetedUrlCounter = 0;
     // Work from the oldest back to 0 (the newest)
     blog_post_items:
-    for(var i = blogPosts.items.length - 1; i >= 0; i--) {
-      var strTime = blogPosts.items[i].dateCreated;
-      strTime = strTime.substr(0, DATE_FORMAT.length);
-      var blogPostTimestamp = new Date(strTime + 'Z');
-      var currentTime = new Date();
-      const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
-      const BLOG_POST_AGE = currentTime - blogPostTimestamp;
+      for (var i = blogPosts.items.length - 1; i >= 0; i--) {
+        var strTime = blogPosts.items[i].dateCreated;
+        strTime = strTime.substr(0, DATE_FORMAT.length);
+        var blogPostTimestamp = new Date(strTime + 'Z');
+        var currentTime = new Date();
+        const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
+        const BLOG_POST_AGE = currentTime - blogPostTimestamp;
 
-      var author = JSON.parse(blogPosts.items[i].author);
-      var strUrl = blogPosts.items[i].additionalFields.link;
-      var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
-      var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
+        var author = JSON.parse(blogPosts.items[i].author);
+        var strUrl = blogPosts.items[i].additionalFields.link;
+        var changeableUrl = strUrl.substr(BLOG_ADDRESS_STUB.length);
+        var sectionName = changeableUrl.substr(0, changeableUrl.indexOf('/'));
 
-      recordTweet(blogPosts.items[i], ENV);
+        recordTweet(blogPosts.items[i], ENV);
 
-      if(BLOG_POST_AGE < PERIOD) {
-        // Only add URLs to be posted, to the list (not the number-to-check)
-        urlList[unTweetedUrlCounter++] = {url: strUrl, section: sectionName, author};
-        for(var x = 0; x < event.length; x++) {
-          // More than one blog post is new - checking for duplicate section names to query only unique names
-          if(event[x].URLSection.S === sectionName) continue blog_post_items;
+        if (BLOG_POST_AGE < PERIOD) {
+          // Only add URLs to be posted, to the list (not the number-to-check)
+          urlList[unTweetedUrlCounter++] = {
+            url: strUrl,
+            section: sectionName,
+            author
+          };
+          for (var x = 0; x < event.length; x++) {
+            // More than one blog post is new - checking for duplicate section names to query only unique names
+            if (event[x].URLSection.S === sectionName) continue blog_post_items;
+          }
+          // Create a list of unique section names
+          event[eventNo] = {
+            'URLSection': {
+              S: sectionName
+            }
+          };
+          eventNo++;
         }
-        // Create a list of unique section names
-        event[eventNo] = {'URLSection':{S:sectionName}};
-        eventNo++;
       }
-    }
-    return event.length > 0 ? dynamo.queryDatabase(event, undefined, urlList, ENV) : {statusCode: 200, body:[]};
+    return event.length > 0 ? dynamo.queryDatabase(event, undefined, urlList, ENV) : {
+      statusCode: 200,
+      body: []
+    };
   }).then(async (resolve) => {
-    if(resolve.statusCode === 200) {
-      for(var item of resolve.body) {
+    if (resolve.statusCode === 200) {
+      for (var item of resolve.body) {
         // console.log('resolve.ref:', resolve.ref);
         // console.log('item.section:', item.section);
         var output =
@@ -77,22 +88,20 @@ exports.sendTweets = function (event, context, callback) {
 
         console.log('Tweeting:', output);
         try {
-          if(TWITTER_ON) {
+          if (TWITTER_ON) {
             twitter.sendTweet(output, TWITTER_ACCOUNT);
           }
-        }
-        catch(error) {
+        } catch (error) {
           console.log('Error is: ', error);
         }
       }
-    }
-    else {
+    } else {
       console.log('Status Code is: ', resolve.statusCode);
       console.log('Error Message is: ', resolve.error);
     }
   }).catch((error) => {
-      console.log('Oops! There was an error:', error);
-      callback(error);
+    console.log('Oops! There was an error:', error);
+    callback(error);
   });
   callback(undefined, 'No Return Value Needed ;-)');
 }
@@ -118,12 +127,12 @@ var authorsList = async (elementData, env) => {
   var output = '';
 
   for (var person of elementData.author) {
-    if(person === ABANDON_VALUE) abandonReturn = true;
+    if (person === ABANDON_VALUE) abandonReturn = true;
     console.log('Author to check: ', person);
     await dynamo.handleAuthorName(person, env).then((resolve) => {
       output += resolve;
     });
-    if(elementData.author[elementData.author.length - 1] !== person) {
+    if (elementData.author[elementData.author.length - 1] !== person) {
       output += SEPARATOR;
     }
   }
