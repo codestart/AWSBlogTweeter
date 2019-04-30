@@ -10,8 +10,6 @@ var ddb = new AWS.DynamoDB({
 const DEFAULT_HANDLE = '@';
 
 var getBlogDetails = async (event, context, body, env) => {
-    //    console.log('Event is: ', JSON.stringify(event, undefined, 4));
-
     var params = {
         RequestItems: {
             [`${env}AWS_BLOGS`]: {
@@ -23,8 +21,8 @@ var getBlogDetails = async (event, context, body, env) => {
 
     try {
         var data = await ddb.batchGetItem(params).promise();
-        var data = reArrangeEntries(data, env);
-        // Debugging Return: return { statusCode: 200, body: { params, data } };
+        data = reArrangeEntries(data, env);
+
         return {
             statusCode: 200,
             ref: data,

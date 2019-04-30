@@ -83,12 +83,18 @@ exports.sendTweets = function (event, context, callback) {
         if (resolve.statusCode === 200) {
             for (var item of resolve.body) {
                 // console.log('resolve:', JSON.stringify(resolve, undefined, 4));
+
                 recordTweet(item, ENV);
-                var output =
-                    'The AWS ' + resolve.ref[item.section][0] +
-                    ' Blog #' + resolve.ref[item.section][1] +
-                    ' ' + item.url +
-                    await authorsList(item, ENV);
+                if (resolve.ref.hasOwnProperty(item.section)) {
+                    var output =
+                        'The AWS ' + resolve.ref[item.section][0] +
+                        ' Blog #' + resolve.ref[item.section][1] +
+                        ' ' + item.url +
+                        await authorsList(item, ENV);
+                } else {
+                    // TODO: Email me if unknown key is used?
+                    console.log('Unknown Key to add to Database:', item.section);
+                }
 
                 console.log('Tweeting:', output);
                 try {
