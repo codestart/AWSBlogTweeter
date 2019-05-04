@@ -3,29 +3,29 @@ const axios = require('axios');
 const dynamo = require('./dynamodb/index.js');
 const twitter = require('./twitter/twitter.js');
 
-// This wrapper is required by AWS Lambda
+const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
+const MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
+const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
+const TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
+const TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
+const ENV = process.env.ENV;
+
+const BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
+const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
+
+const orderBy = 'SortOrderValue';
+const sortAscending = false;
+const limit = NUMBER_TO_CHECK;
+const locale = 'en_US';
+const awsBlogUrl =
+    `https://aws.amazon.com/api/dirs/blog-posts/items?` +
+    `order_by=${orderBy}` +
+    `&sort_ascending=${sortAscending}` +
+    `&limit=${limit}` +
+    `&locale=${locale}`;
+// https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
+
 exports.sendTweets = function (event, context, callback) {
-    var NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-    var MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
-    var TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
-    var TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
-    const ENV = process.env.ENV;
-
-    var BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
-    var DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
-
-    const orderBy = 'SortOrderValue';
-    const sortAscending = false;
-    const limit = NUMBER_TO_CHECK;
-    const locale = 'en_US';
-    const awsBlogUrl =
-        `https://aws.amazon.com/api/dirs/blog-posts/items?` +
-        `order_by=${orderBy}` +
-        `&sort_ascending=${sortAscending}` +
-        `&limit=${limit}` +
-        `&locale=${locale}`;
-    // https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
-
     axios.get(awsBlogUrl).then((response) => {
         // success case expression:
         const blogPosts = response.data;
@@ -41,7 +41,6 @@ exports.sendTweets = function (event, context, callback) {
             dateCreated = dateCreated.substr(0, DATE_FORMAT.length);
             var blogPostTimestamp = new Date(dateCreated + 'Z');
             var currentTime = new Date();
-            const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
             const BLOG_POST_AGE = currentTime - blogPostTimestamp;
 
             var author = JSON.parse(blogPosts.items[i].author);
@@ -80,40 +79,56 @@ exports.sendTweets = function (event, context, callback) {
             body: []
         };
     }).then(async (resolve) => {
+        var tweetsSent = [];
         if (resolve.statusCode === 200) {
             for (var item of resolve.body) {
                 // console.log('resolve:', JSON.stringify(resolve, undefined, 4));
 
-                recordTweet(item, ENV);
                 if (resolve.ref.hasOwnProperty(item.section)) {
+                    recordTweet(item, ENV);
                     var output =
                         'The AWS ' + resolve.ref[item.section][0] +
                         ' Blog #' + resolve.ref[item.section][1] +
                         ' ' + item.url +
                         await authorsList(item, ENV);
-                } else {
-                    // TODO: Email me if unknown key is used?
-                    console.log('Unknown Key to add to Database:', item.section);
-                }
 
-                console.log('Tweeting:', output);
-                try {
-                    if (TWITTER_ON) {
-                        twitter.sendTweet(output, TWITTER_ACCOUNT);
+//                    console.log('Tweeting:', output);
+                    try {
+                        if (TWITTER_ON) {
+                            twitter.sendTweet(output, TWITTER_ACCOUNT);
+                        }
+                        tweetsSent.push(output);
+                    } catch (error) {
+                        console.log('Error is: ', error);
                     }
-                } catch (error) {
-                    console.log('Error is: ', error);
+                } else {
+                    // TODO: A new blog has been created - Add to AWS_BLOGS table.
+                    console.log('Unknown Key to add to Database:', item.section);
                 }
             }
         } else {
             console.log('Status Code is: ', resolve.statusCode);
             console.log('Error Message is: ', resolve.error);
         }
+        callback(undefined, outputTweetsSent(tweetsSent));
     }).catch((error) => {
         console.log('Oops! There was an error:', error);
         callback(error);
     });
-    callback(undefined, 'No Return Value Needed ;-)');
+}
+
+var outputTweetsSent = (tweetsSent) => {
+    var returnValue = '';
+
+    if(tweetsSent === undefined || tweetsSent.length === 0) {
+        returnValue = 'No Tweets Sent';
+    } else if(tweetsSent.length === 1){
+        returnValue = tweetsSent[0];
+    } else {
+        returnValue = JSON.stringify(tweetsSent);
+    }
+
+    return returnValue;
 }
 
 var recordTweet = (tweet, env) => {
