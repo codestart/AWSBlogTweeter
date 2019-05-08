@@ -59,6 +59,30 @@ var checkAuthorName = async (authorName, env) => {
     }
 };
 
+var isPublished = async (blogId, env) => {
+    var params = {
+        TableName: `${env}BLOG_POSTS`,
+        ExpressionAttributeValues: {
+            ':s': {
+                S: blogId
+            }
+        },
+        KeyConditionExpression: 'ID = :s',
+        ProjectionExpression: 'ID'
+    };
+
+    try {
+        var data = await ddb.query(params);
+        return data != {};
+    } catch (error) {
+        console.log('Error is:', error);
+        return {
+            statusCode: 400,
+            error: `Could not post: ${error}`
+        };
+    }
+};
+
 // Default initial value for Twitter Handle is blank NOT 'NONE' until it has been searched-for!
 // This does not need to be synch'd once it is done!
 var addNewAuthor = (authorName, env) => {
@@ -238,6 +262,7 @@ var isValidTwitterHandle = async handle => {
 }
 
 module.exports = {
+    isPublished,
     getBlogDetails,
     handleAuthorName,
     recordTweetVitals,

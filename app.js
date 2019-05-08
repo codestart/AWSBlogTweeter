@@ -1,17 +1,19 @@
 const axios = require('axios');
 
 const dynamo = require('./dynamodb/index.js');
+const ses = require('./ses/ses_index.js');
+
 const twitter = require('./twitter/twitter.js');
 
 const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-const MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
-const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
+// const MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
+// const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
 const TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
 const TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
 const ENV = process.env.ENV;
 
 const BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
+// const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 const orderBy = 'SortOrderValue';
 const sortAscending = false;
@@ -37,21 +39,23 @@ exports.sendTweets = function (event, context, callback) {
         // Work from the oldest back to 0 (the newest)
         blog_post_items:
         for (var i = blogPosts.items.length - 1; i >= 0; i--) {
-            var dateCreated = blogPosts.items[i].dateCreated;
-            dateCreated = dateCreated.substr(0, DATE_FORMAT.length);
-            var blogPostTimestamp = new Date(dateCreated + 'Z');
-            var currentTime = new Date();
-            const BLOG_POST_AGE = currentTime - blogPostTimestamp;
+            // var dateCreated = blogPosts.items[i].dateCreated;
+            // dateCreated = dateCreated.substr(0, DATE_FORMAT.length);
+            // var blogPostTimestamp = new Date(dateCreated + 'Z');
+            // var currentTime = new Date();
+            // const BLOG_POST_AGE = currentTime - blogPostTimestamp;
 
             var author = JSON.parse(blogPosts.items[i].author);
             var url = blogPosts.items[i].additionalFields.link;
             var changeableUrl = url.substr(BLOG_ADDRESS_STUB.length);
             var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
+            var id = blogPosts.items[i].id;
 
-            if (BLOG_POST_AGE < PERIOD) {
+            // if (BLOG_POST_AGE < PERIOD) {
+            if (!dynamo.isPublished(id, ENV)) {
                 // Only add URLs to be posted, to the list (not the number-to-check)
                 urlList[unTweetedUrlCounter++] = {
-                    id: blogPosts.items[i].id,
+                    id,
                     slug: blogPosts.items[i].additionalFields.slug,
                     createdBy: blogPosts.items[i].createdBy,
                     dateUpdated: blogPosts.items[i].dateUpdated,
@@ -103,6 +107,7 @@ exports.sendTweets = function (event, context, callback) {
                     }
                 } else {
                     // TODO: A new blog has been created - Add to AWS_BLOGS table.
+                    ses.notifyNewBlog('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
                     console.log('Unknown Key to add to Database:', item.section);
                 }
             }
@@ -147,13 +152,15 @@ var recordTweet = (tweet, env) => {
 var authorsList = async (elementData, env) => {
     const STUB = ' by: ';
     const SEPARATOR = ' and ';
-    const ABANDON_VALUE = 'publicsector';
+    const ABANDON_VALUES = ['publicsector'];
 
     var abandonReturn = false;
     var output = '';
 
     for (var person of elementData.author) {
-        if (person === ABANDON_VALUE) abandonReturn = true;
+        for (var value of ABANDON_VALUES) {
+            if (person === value) abandonReturn = true;
+        }
 
         await dynamo.handleAuthorName(person, env).then((resolve) => {
             output += resolve;
