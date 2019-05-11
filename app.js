@@ -28,7 +28,7 @@ const awsBlogUrl =
 // https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
 
 exports.sendTweets = function (event, context, callback) {
-    axios.get(awsBlogUrl).then((response) => {
+    axios.get(awsBlogUrl).then(async (response) => {
         // success case expression:
         const blogPosts = response.data;
         //console.log(JSON.stringify(blogPosts, undefined, 4));
@@ -39,27 +39,20 @@ exports.sendTweets = function (event, context, callback) {
         // Work from the oldest back to 0 (the newest)
         blog_post_items:
         for (var i = blogPosts.items.length - 1; i >= 0; i--) {
-            // var dateCreated = blogPosts.items[i].dateCreated;
-            // dateCreated = dateCreated.substr(0, DATE_FORMAT.length);
-            // var blogPostTimestamp = new Date(dateCreated + 'Z');
-            // var currentTime = new Date();
-            // const BLOG_POST_AGE = currentTime - blogPostTimestamp;
-
             var author = JSON.parse(blogPosts.items[i].author);
             var url = blogPosts.items[i].additionalFields.link;
             var changeableUrl = url.substr(BLOG_ADDRESS_STUB.length);
             var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
             var id = blogPosts.items[i].id;
 
-            // if (BLOG_POST_AGE < PERIOD) {
-            if (!dynamo.isPublished(id, ENV)) {
+            if (!await dynamo.isPublished(id, ENV)) {
                 // Only add URLs to be posted, to the list (not the number-to-check)
                 urlList[unTweetedUrlCounter++] = {
                     id,
                     slug: blogPosts.items[i].additionalFields.slug,
                     createdBy: blogPosts.items[i].createdBy,
                     dateUpdated: blogPosts.items[i].dateUpdated,
-                    dateCreated,
+                    dateCreated: blogPosts.items[i].dateCreated,
                     title: blogPosts.items[i].additionalFields.title,
                     url,
                     section,
@@ -96,7 +89,7 @@ exports.sendTweets = function (event, context, callback) {
                         ' ' + item.url +
                         await authorsList(item, ENV);
 
-//                    console.log('Tweeting:', output);
+                    // console.log('Tweeting:', output);
                     try {
                         if (TWITTER_ON) {
                             twitter.sendTweet(output, TWITTER_ACCOUNT);
@@ -120,21 +113,21 @@ exports.sendTweets = function (event, context, callback) {
         console.log('Oops! There was an error:', error);
         callback(error);
     });
-}
+};
 
 var outputTweetsSent = (tweetsSent) => {
     var returnValue = '';
 
-    if(tweetsSent === undefined || tweetsSent.length === 0) {
+    if (tweetsSent === undefined || tweetsSent.length === 0) {
         returnValue = 'No Tweets Sent';
-    } else if(tweetsSent.length === 1){
+    } else if (tweetsSent.length === 1) {
         returnValue = tweetsSent[0];
     } else {
         returnValue = JSON.stringify(tweetsSent);
     }
 
     return returnValue;
-}
+};
 
 var recordTweet = (tweet, env) => {
     // console.log('Tweet:', tweet);
@@ -143,7 +136,7 @@ var recordTweet = (tweet, env) => {
     }
 
     dynamo.recordTweetVitals(tweet, env);
-}
+};
 
 /**
  * AWS Seem to use 'publicsector' as a default author value. It's of no interest
@@ -152,7 +145,7 @@ var recordTweet = (tweet, env) => {
 var authorsList = async (elementData, env) => {
     const STUB = ' by: ';
     const SEPARATOR = ' and ';
-    const ABANDON_VALUES = ['publicsector'];
+    const ABANDON_VALUES = ['publicsector', 'AWS Admin'];
 
     var abandonReturn = false;
     var output = '';
@@ -174,4 +167,4 @@ var authorsList = async (elementData, env) => {
     }
 
     return (abandonReturn ? '' : STUB + output);
-}
+};

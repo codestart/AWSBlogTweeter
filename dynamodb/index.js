@@ -1,8 +1,8 @@
-var AWS = require('aws-sdk');
-AWS.config.update({
+var AWS2 = require('aws-sdk');
+AWS2.config.update({
     region: 'eu-west-1'
 });
-var ddb = new AWS.DynamoDB({
+var ddb = new AWS2.DynamoDB({
     apiVersion: '2012-08-10'
 });
 
@@ -72,8 +72,7 @@ var isPublished = async (blogId, env) => {
     };
 
     try {
-        var data = await ddb.query(params);
-        return data != {};
+        return (await ddb.query(params).promise()).Count !== 0;
     } catch (error) {
         console.log('Error is:', error);
         return {
