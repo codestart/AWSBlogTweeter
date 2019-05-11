@@ -1,3 +1,5 @@
+var AWS = require('aws-sdk');
+
 AWS.config.update({
     region: 'eu-west-1'
 });
@@ -7,12 +9,12 @@ var ses = new AWS.SES({
 
 /* The following example sends a formatted email: */
 
-var notifyNewBlog = (subject, body) => {
+var sendEmailNotification = (subject, body) => {
     var params = {
         Destination: {
             BccAddresses: [],
             CcAddresses: [],
-            ToAddresses: [ "andoni.oc@gmail.com" ]
+            ToAddresses: ["andoni.oc@gmail.com"]
         },
         Message: {
             Body: {
@@ -49,5 +51,5 @@ var notifyNewBlog = (subject, body) => {
 };
 
 module.exports = {
-    notifyNewBlog
+    sendEmailNotification
 };

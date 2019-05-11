@@ -93,6 +93,8 @@ exports.sendTweets = function (event, context, callback) {
                     try {
                         if (TWITTER_ON) {
                             twitter.sendTweet(output, TWITTER_ACCOUNT);
+                        } else {
+                            ses.sendEmailNotification('Tweeting:', output);
                         }
                         tweetsSent.push(output);
                     } catch (error) {
@@ -100,7 +102,7 @@ exports.sendTweets = function (event, context, callback) {
                     }
                 } else {
                     // TODO: A new blog has been created - Add to AWS_BLOGS table.
-                    ses.notifyNewBlog('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
+                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
                     console.log('Unknown Key to add to Database:', item.section);
                 }
             }
