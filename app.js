@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const dynamo = require('./dynamodb/index.js');
+const ses = require('./ses/ses_index.js');
 
 const twitter = require('./twitter/twitter.js');
 
@@ -94,6 +95,7 @@ exports.sendTweets = function (event, context, callback) {
                             twitter.sendTweet(output, TWITTER_ACCOUNT);
                         } else {
                             console.log('TWITTER_ON=false - NOT Tweeting:', output);
+                            ses.sendEmailNotification('Tweet Not Sent', output);
                         }
                         tweetsSent.push(output);
                     } catch (error) {
@@ -101,8 +103,8 @@ exports.sendTweets = function (event, context, callback) {
                     }
                 } else {
                     // TODO: A new blog has been created - Add to AWS_BLOGS table.
+                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'So NOT tweeting:\n' + output);
                     console.log('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
-                    console.log('Unknown Key to add to Database:', item.section);
                 }
             }
         } else {
