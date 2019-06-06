@@ -116,7 +116,7 @@ var addNewAuthor = (authorName, env) => {
     }
 
     return returnValue;
-}
+};
 
 var recordTweetVitals = async (tweetVitals, env) => {
     var returnValue = {};
@@ -139,6 +139,12 @@ var recordTweetVitals = async (tweetVitals, env) => {
             "DateCreated": {
                 N: String(new Date(tweetVitals.dateCreated).getTime())
             },
+            "DatePublished": {
+                N: String(new Date().getTime())
+            },
+            "Published": {
+                BOOL: true
+            },
             "Link": {
                 S: tweetVitals.url
             },
@@ -153,7 +159,7 @@ var recordTweetVitals = async (tweetVitals, env) => {
     });
 
     return returnValue;
-}
+};
 
 // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#batchWriteItem-property
 var recordAuthorTweetLink = async (id, authorName, env) => {
@@ -182,35 +188,55 @@ var recordAuthorTweetLink = async (id, authorName, env) => {
     }
 
     return returnValue;
-}
+};
+
+var incAuthorPostCount = (authorName, env) => {
+    var paramsUpdate = {
+        TableName: `${env}TWITTER_HANDLES`,
+        Key: {
+            'AuthorName': {
+                S: authorName
+            }
+        },
+        UpdateExpression: 'ADD CountPosts :q',
+        ExpressionAttributeValues: {
+            ':q': {
+                N: '1'
+            }
+        }
+    }
+
+    try {
+        // console.log(JSON.stringify(paramsUpdate, undefined, 4));
+        ddb.updateItem(paramsUpdate).promise().catch((err) => {
+            console.log('Increment counter function err:', err);
+        });
+    } catch (error) {
+        console.log('Update Error is:', error);
+    }
+};
 
 var handleAuthorName = async (authorName, env) => {
-    var returnValue = '';
+    var returnValue = authorName;
     await checkAuthorName(authorName, env).then((data) => {
         if (data.Count === 1 && data.Items[0].TwitterHandle.S === DEFAULT_HANDLE) {
-            console.log('Seen before, previously entered in the DB, but not yet checked for a twitter handle.');
-            // TODO: Update DB check count +1
-            returnValue = authorName;
+            console.log('Seen before, blank twitter handle.');
+            incAuthorPostCount(authorName, env);
         } else if (data.Count === 1 && data.Items[0].TwitterHandle.S !== 'NONE') {
-            // check does returnValue.Items[0].TwittterHandle.S, begine with an @-sign and have the correct number of characters.
-            // TODO-Later: validate against Twitter?
-            console.log('Has a twitter and it is:', data.Items[0].TwitterHandle.S);
-            // TODO: Update DB check count +1
-            returnValue = data.Items[0].TwitterHandle.S;
-            if (!isValidTwitterHandle(returnValue)) {
-                returnValue = authorName;
+            var twitterHandle = data.Items[0].TwitterHandle.S;
+            console.log('Seen before, twitter handle is:', twitterHandle);
+            if (isValidTwitterHandle(twitterHandle)) {
+                returnValue = twitterHandle;
             }
+            incAuthorPostCount(authorName, env);
         } else if (data.Count === 1 && data.Items[0].TwitterHandle.S === 'NONE') {
-            console.log('Is known to have no Twitter so use full name in tweet');
-            returnValue = authorName;
+            console.log('Seen before, no twitter handle.');
+            incAuthorPostCount(authorName, env);
         } else if (data.Count === 0) {
-            console.log('Never before seen, so enter it in DB and use full name for now.');
-            var confirmation = addNewAuthor(authorName, env);
-            console.log('Confirmation:', confirmation);
-            returnValue = authorName;
+            console.log('Never seen before, adding...');
+            addNewAuthor(authorName, env);
         } else {
             console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
-            returnValue = authorName;
         }
     }).catch((err) => {
         console.log('Error on checkAuthorName:', authorName);
@@ -218,7 +244,7 @@ var handleAuthorName = async (authorName, env) => {
     });
 
     return returnValue;
-}
+};
 
 var reArrangeEntries = (data, env) => {
     var resultsArr = data.Responses[`${env}AWS_BLOGS`];
@@ -258,7 +284,7 @@ var isValidTwitterHandle = async handle => {
     }
 
     return valid;
-}
+};
 
 module.exports = {
     isPublished,
