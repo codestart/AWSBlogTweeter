@@ -235,6 +235,7 @@ var handleAuthorName = async (authorName, env) => {
         } else if (data.Count === 0) {
             console.log('Never seen before, adding...');
             addNewAuthor(authorName, env);
+            returnValue += '*';
         } else {
             console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
         }
