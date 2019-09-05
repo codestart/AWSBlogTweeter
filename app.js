@@ -2,7 +2,6 @@ const axios = require('axios');
 
 const dynamo = require('./dynamodb/index.js');
 const ses = require('./ses/ses_index.js');
-
 const twitter = require('./twitter/twitter.js');
 
 const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
@@ -38,39 +37,39 @@ exports.sendTweets = function (event, context, callback) {
         var unTweetedUrlCounter = 0;
         // Work from the oldest back to 0 (the newest)
         blog_post_items:
-        for (var i = blogPosts.items.length - 1; i >= 0; i--) {
-            var author = JSON.parse(blogPosts.items[i].author);
-            var url = blogPosts.items[i].additionalFields.link;
-            var changeableUrl = url.substr(BLOG_ADDRESS_STUB.length);
-            var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
-            var id = blogPosts.items[i].id;
+            for (var i = blogPosts.items.length - 1; i >= 0; i--) {
+                var author = JSON.parse(blogPosts.items[i].author);
+                var url = blogPosts.items[i].additionalFields.link;
+                var changeableUrl = url.substr(BLOG_ADDRESS_STUB.length);
+                var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
+                var id = blogPosts.items[i].id;
 
-            if (!await dynamo.isPublished(id, ENV)) {
-                // Only add URLs to be posted, to the list (not the number-to-check)
-                urlList[unTweetedUrlCounter++] = {
-                    id,
-                    slug: blogPosts.items[i].additionalFields.slug,
-                    createdBy: blogPosts.items[i].createdBy,
-                    dateUpdated: blogPosts.items[i].dateUpdated,
-                    dateCreated: blogPosts.items[i].dateCreated,
-                    title: blogPosts.items[i].additionalFields.title,
-                    url,
-                    section,
-                    author
-                };
-                for (var x = 0; x < event.length; x++) {
-                    // More than one blog post is new - checking for duplicate section names to query only unique names
-                    if (event[x].URLSection.S === section) continue blog_post_items;
-                }
-                // Create a list of unique section names
-                event[eventNo] = {
-                    'URLSection': {
-                        S: section
+                if (!await dynamo.isPublished(id, ENV)) {
+                    // Only add URLs to be posted, to the list (not the number-to-check)
+                    urlList[unTweetedUrlCounter++] = {
+                        id,
+                        slug: blogPosts.items[i].additionalFields.slug,
+                        createdBy: blogPosts.items[i].createdBy,
+                        dateUpdated: blogPosts.items[i].dateUpdated,
+                        dateCreated: blogPosts.items[i].dateCreated,
+                        title: blogPosts.items[i].additionalFields.title,
+                        url,
+                        section,
+                        author
+                    };
+                    for (var x = 0; x < event.length; x++) {
+                        // More than one blog post is new - checking for duplicate section names to query only unique names
+                        if (event[x].URLSection.S === section) continue blog_post_items;
                     }
-                };
-                eventNo++;
+                    // Create a list of unique section names
+                    event[eventNo] = {
+                        'URLSection': {
+                            S: section
+                        }
+                    };
+                    eventNo++;
+                }
             }
-        }
         return event.length > 0 ? dynamo.getBlogDetails(event, undefined, urlList, ENV) : {
             statusCode: 200,
             body: []
@@ -92,7 +91,7 @@ exports.sendTweets = function (event, context, callback) {
                     // console.log('Tweeting:', output);
                     try {
                         if (TWITTER_ON) {
-                            twitter.sendTweet(output, TWITTER_ACCOUNT);
+                            twitter.sendTweet(TWITTER_ACCOUNT, output);
                         } else {
                             console.log('TWITTER_ON=false - NOT Tweeting:', output);
                             ses.sendEmailNotification('Tweet Not Sent', output);
@@ -159,11 +158,20 @@ var authorsList = async (elementData, env) => {
         }
 
         await dynamo.handleAuthorName(person, env).then((resolve) => {
+            var isValidHandle = dynamo.isValidTwitterHandle(resolve);
+            if (isValidHandle) {
+                if (TWITTER_ON) {
+                    twitter.follow(TWITTER_ACCOUNT, resolve);
+                } else {
+                    console.log('TWITTER_ON=false sending follow to:', resolve);
+                }
+            }
             output += resolve;
         }).catch((err) => {
             console.log('Error on authorsList:', elementData);
-            console.log('err:', JSON.stringify(err, undefined, 4));
+            console.log('authorsList err:', JSON.stringify(err, undefined, 4));
         });
+
         if (elementData.author[elementData.author.length - 1] !== person) {
             output += SEPARATOR;
         }
