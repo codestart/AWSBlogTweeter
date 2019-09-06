@@ -8,6 +8,7 @@ var ddb = new AWS2.DynamoDB({
 
 // Given as inserting an empty string gives problems.
 const DEFAULT_HANDLE = '@';
+const NEW_AUTHOR_DECORATION = '*';
 
 var getBlogDetails = async (event, context, body, env) => {
     var params = {
@@ -235,7 +236,7 @@ var handleAuthorName = async (authorName, env) => {
         } else if (data.Count === 0) {
             console.log('Never seen before, adding...');
             addNewAuthor(authorName, env);
-            returnValue += '*';
+            returnValue += NEW_AUTHOR_DECORATION;
         } else {
             console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
         }
@@ -263,9 +264,13 @@ var isValidTwitterHandle = handle => {
     var valid = true;
     var REG_EXP = new RegExp('[0-9a-z_]+', 'i');
     if (null !== handle && DEFAULT_HANDLE !== handle) {
+        var firstChar = handle.substr(0, 1);
         handle = handle.substr(1);
 
-        if (handle.length < 1 || handle.length > 15) {
+        if (firstChar !== '@') {
+            valid = false;
+            console.log('Fail validation 0) no leading @-sign', handle);
+        } else if (handle.length < 1 || handle.length > 15) {
             valid = false;
             console.log('Fail validation 1) length', handle);
         } else if (null === REG_EXP.exec(handle)) {
@@ -276,10 +281,10 @@ var isValidTwitterHandle = handle => {
             console.log('Fail validation 3) reg ex', handle);
         } else if (handle.toLowerCase().indexOf('twitter') !== -1 || handle.toLowerCase().indexOf('admin') !== -1) {
             valid = false;
-            console.log('Fail validation 3) content', handle);
+            console.log('Fail validation 4) content', handle);
         }
     } else {
-        console.log('Fail validation 0) null');
+        console.log('Fail validation -1) null');
     }
 
     return valid;

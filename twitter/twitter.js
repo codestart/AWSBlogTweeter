@@ -21,7 +21,8 @@ var sendTweet = (twitterAccount, tweetBodyText) => {
 };
 
 var isFollowing = async (twitterAccount, twitterHandle) => {
-    return await client(twitterAccount).get('friendships/lookup', {
+    var returnValue = false;
+    await client(twitterAccount).then((response) => response.get('friendships/lookup', {
         screen_name: twitterHandle
     }, function (error, response) {
         if (error) {
@@ -38,11 +39,12 @@ var isFollowing = async (twitterAccount, twitterHandle) => {
                 }
             }
         }
-    });
+    }));
+    return returnValue;
 };
 
 var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
-    client(twitterAccount).post('friendships/create', {
+    client(twitterAccount).then((response) => response.post('friendships/create', {
         screen_name: twitterHandle,
         follow: notifyUser
     }, function (error, tweet, response) {
@@ -52,7 +54,7 @@ var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
             console.log(tweet); // Tweet body.
             console.log(response); // Raw response object.
         }
-    });
+    }));
 };
 
 var follow = async (twitterAccount, twitterHandle) => {
@@ -61,7 +63,7 @@ var follow = async (twitterAccount, twitterHandle) => {
     }
 };
 
-module.export = {
+module.exports = {
     sendTweet,
     follow
 };

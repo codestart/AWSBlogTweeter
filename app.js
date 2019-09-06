@@ -5,14 +5,11 @@ const ses = require('./ses/ses_index.js');
 const twitter = require('./twitter/twitter.js');
 
 const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-// const MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
-// const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
 const TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
 const TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
 const ENV = process.env.ENV;
 
 const BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
-// const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 const orderBy = 'SortOrderValue';
 const sortAscending = false;
@@ -30,7 +27,6 @@ exports.sendTweets = function (event, context, callback) {
     axios.get(awsBlogUrl).then(async (response) => {
         // success case expression:
         const blogPosts = response.data;
-        //console.log(JSON.stringify(blogPosts, undefined, 4));
         var event = [];
         var urlList = []; // Must be same size or bigger than event array above.
         var eventNo = 0;
