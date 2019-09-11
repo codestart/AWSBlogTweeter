@@ -265,23 +265,23 @@ var isValidTwitterHandle = handle => {
     var REG_EXP = new RegExp('[0-9a-z_]+', 'i');
     if (null !== handle && DEFAULT_HANDLE !== handle) {
         var firstChar = handle.substr(0, 1);
-        handle = handle.substr(1);
+        var handle_only = handle.substr(1);
 
         if (firstChar !== '@') {
             valid = false;
             console.log('Fail validation 0) no leading @-sign', handle);
-        } else if (handle.length < 1 || handle.length > 15) {
+        } else if (handle_only.length < 1 || handle_only.length > 15) {
             valid = false;
-            console.log('Fail validation 1) length', handle);
-        } else if (null === REG_EXP.exec(handle)) {
+            console.log('Fail validation 1) length', handle_only);
+        } else if (null === REG_EXP.exec(handle_only)) {
             valid = false;
-            console.log('Fail validation 2) reg ex', handle);
-        } else if (REG_EXP.exec(handle)[0] != handle) {
+            console.log('Fail validation 2) reg ex', handle_only);
+        } else if (REG_EXP.exec(handle_only)[0] != handle_only) {
             valid = false;
-            console.log('Fail validation 3) reg ex', handle);
-        } else if (handle.toLowerCase().indexOf('twitter') !== -1 || handle.toLowerCase().indexOf('admin') !== -1) {
+            console.log('Fail validation 3) reg ex', handle_only);
+        } else if (handle_only.toLowerCase().indexOf('twitter') !== -1 || handle_only.toLowerCase().indexOf('admin') !== -1) {
             valid = false;
-            console.log('Fail validation 4) content', handle);
+            console.log('Fail validation 4) content', handle_only);
         }
     } else {
         console.log('Fail validation -1) null');

@@ -33,39 +33,39 @@ exports.sendTweets = function (event, context, callback) {
         var unTweetedUrlCounter = 0;
         // Work from the oldest back to 0 (the newest)
         blog_post_items:
-            for (var i = blogPosts.items.length - 1; i >= 0; i--) {
-                var author = JSON.parse(blogPosts.items[i].author);
-                var url = blogPosts.items[i].additionalFields.link;
-                var changeableUrl = url.substr(BLOG_ADDRESS_STUB.length);
-                var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
-                var id = blogPosts.items[i].id;
+        for (var i = blogPosts.items.length - 1; i >= 0; i--) {
+            var author = JSON.parse(blogPosts.items[i].author);
+            var url = blogPosts.items[i].additionalFields.link;
+            var changeableUrl = url.substr(BLOG_ADDRESS_STUB.length);
+            var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
+            var id = blogPosts.items[i].id;
 
-                if (!await dynamo.isPublished(id, ENV)) {
-                    // Only add URLs to be posted, to the list (not the number-to-check)
-                    urlList[unTweetedUrlCounter++] = {
-                        id,
-                        slug: blogPosts.items[i].additionalFields.slug,
-                        createdBy: blogPosts.items[i].createdBy,
-                        dateUpdated: blogPosts.items[i].dateUpdated,
-                        dateCreated: blogPosts.items[i].dateCreated,
-                        title: blogPosts.items[i].additionalFields.title,
-                        url,
-                        section,
-                        author
-                    };
-                    for (var x = 0; x < event.length; x++) {
-                        // More than one blog post is new - checking for duplicate section names to query only unique names
-                        if (event[x].URLSection.S === section) continue blog_post_items;
-                    }
-                    // Create a list of unique section names
-                    event[eventNo] = {
-                        'URLSection': {
-                            S: section
-                        }
-                    };
-                    eventNo++;
+            if (!await dynamo.isPublished(id, ENV)) {
+                // Only add URLs to be posted, to the list (not the number-to-check)
+                urlList[unTweetedUrlCounter++] = {
+                    id,
+                    slug: blogPosts.items[i].additionalFields.slug,
+                    createdBy: blogPosts.items[i].createdBy,
+                    dateUpdated: blogPosts.items[i].dateUpdated,
+                    dateCreated: blogPosts.items[i].dateCreated,
+                    title: blogPosts.items[i].additionalFields.title,
+                    url,
+                    section,
+                    author
+                };
+                for (var x = 0; x < event.length; x++) {
+                    // More than one blog post is new - checking for duplicate section names to query only unique names
+                    if (event[x].URLSection.S === section) continue blog_post_items;
                 }
+                // Create a list of unique section names
+                event[eventNo] = {
+                    'URLSection': {
+                        S: section
+                    }
+                };
+                eventNo++;
             }
+        }
         return event.length > 0 ? dynamo.getBlogDetails(event, undefined, urlList, ENV) : {
             statusCode: 200,
             body: []
@@ -98,7 +98,7 @@ exports.sendTweets = function (event, context, callback) {
                     }
                 } else {
                     // TODO: A new blog has been created - Add to AWS_BLOGS table.
-                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'So NOT tweeting:\n' + output);
+                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'So NOT tweeting. Add new section to AWS_BLOGS.\napp.js ln:101');
                     console.log('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
                 }
             }
@@ -136,10 +136,6 @@ var recordTweet = (tweet, env) => {
     dynamo.recordTweetVitals(tweet, env);
 };
 
-/**
- * AWS Seem to use 'publicsector' as a default author value. It's of no interest
- * to us.
- */
 var authorsList = async (elementData, env) => {
     const STUB = ' by: ';
     const SEPARATOR = ' and ';
