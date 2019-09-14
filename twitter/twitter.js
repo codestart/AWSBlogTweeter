@@ -14,7 +14,7 @@ var sendTweet = (twitterAccount, tweetBodyText) => {
             console.log(error);
         } else {
             console.log(tweet); // Tweet details.
-//            console.log(response); // Raw response object.
+            //            console.log(response); // Raw response object.
         }
     }));
 };
@@ -50,7 +50,7 @@ var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
             console.log(error);
         } else {
             console.log(twitterAccountDetails);
-//            console.log(response); // Raw response object.
+            //            console.log(response); // Raw response object.
         }
     }));
 };
