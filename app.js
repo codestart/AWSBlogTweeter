@@ -2,18 +2,14 @@ const axios = require('axios');
 
 const dynamo = require('./dynamodb/index.js');
 const ses = require('./ses/ses_index.js');
-
 const twitter = require('./twitter/twitter.js');
 
 const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-// const MINUTES_IN_PERIOD = process.env.MINUTES_IN_PERIOD;
-// const PERIOD = 1000 * 60 * MINUTES_IN_PERIOD;
 const TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
 const TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
 const ENV = process.env.ENV;
 
 const BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
-// const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 const orderBy = 'SortOrderValue';
 const sortAscending = false;
@@ -31,7 +27,6 @@ exports.sendTweets = function (event, context, callback) {
     axios.get(awsBlogUrl).then(async (response) => {
         // success case expression:
         const blogPosts = response.data;
-        //console.log(JSON.stringify(blogPosts, undefined, 4));
         var event = [];
         var urlList = []; // Must be same size or bigger than event array above.
         var eventNo = 0;
@@ -92,7 +87,7 @@ exports.sendTweets = function (event, context, callback) {
                     // console.log('Tweeting:', output);
                     try {
                         if (TWITTER_ON) {
-                            twitter.sendTweet(output, TWITTER_ACCOUNT);
+                            twitter.sendTweet(TWITTER_ACCOUNT, output);
                         } else {
                             console.log('TWITTER_ON=false - NOT Tweeting:', output);
                             ses.sendEmailNotification('Tweet Not Sent', output);
@@ -103,7 +98,7 @@ exports.sendTweets = function (event, context, callback) {
                     }
                 } else {
                     // TODO: A new blog has been created - Add to AWS_BLOGS table.
-                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'So NOT tweeting:\n' + output);
+                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'So NOT tweeting. Add new section to AWS_BLOGS.\napp.js ln:101');
                     console.log('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
                 }
             }
@@ -141,10 +136,6 @@ var recordTweet = (tweet, env) => {
     dynamo.recordTweetVitals(tweet, env);
 };
 
-/**
- * AWS Seem to use 'publicsector' as a default author value. It's of no interest
- * to us.
- */
 var authorsList = async (elementData, env) => {
     const STUB = ' by: ';
     const SEPARATOR = ' and ';
@@ -159,11 +150,20 @@ var authorsList = async (elementData, env) => {
         }
 
         await dynamo.handleAuthorName(person, env).then((resolve) => {
+            var isValidHandle = dynamo.isValidTwitterHandle(resolve);
+            if (isValidHandle) {
+                if (TWITTER_ON) {
+                    twitter.follow(TWITTER_ACCOUNT, resolve);
+                } else {
+                    console.log('TWITTER_ON=false sending follow to:', resolve);
+                }
+            }
             output += resolve;
         }).catch((err) => {
             console.log('Error on authorsList:', elementData);
-            console.log('err:', JSON.stringify(err, undefined, 4));
+            console.log('authorsList err:', JSON.stringify(err, undefined, 4));
         });
+
         if (elementData.author[elementData.author.length - 1] !== person) {
             output += SEPARATOR;
         }

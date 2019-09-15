@@ -6,3 +6,7 @@ node_modules
 # Git won't ignore package.json or package-lock.json as they are already being
 # tracked. This is for twitter.json
 *.json
+
+/.aws-sam
+/sam-app
+/RecycleBin
