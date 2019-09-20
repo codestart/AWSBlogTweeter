@@ -1,2 +1,13 @@
 node_modules
 *.yml
+*.zip
+*.csv
+
+
+twitter.json
+dev.json
+
+/.aws-sam
+/.vscode
+/RecycleBin
+/BlogTweeter/node_modules
