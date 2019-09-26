@@ -284,7 +284,8 @@ var isValidTwitterHandle = handle => {
             console.log('Fail validation 4) content', handle_only);
         }
     } else {
-        console.log('Fail validation -1) null');
+        valid = false;
+        console.log('Fail validation -1)', handle);
     }
 
     return valid;
@@ -293,6 +294,7 @@ var isValidTwitterHandle = handle => {
 module.exports = {
     isPublished,
     getBlogDetails,
+    checkAuthorName,
     handleAuthorName,
     recordTweetVitals,
     isValidTwitterHandle,

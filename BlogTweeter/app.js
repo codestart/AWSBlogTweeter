@@ -1,8 +1,8 @@
 const axios = require('axios');
 
-const dynamo = require('./dynamodb/index.js');
-const ses = require('./ses/ses_index.js');
-const twitter = require('./twitter/twitter.js');
+const dynamo = require('./src/dynamodb.js');
+const ses = require('./src/ses.js');
+const twitter = require('./src/twitter.js');
 
 const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
 const TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
