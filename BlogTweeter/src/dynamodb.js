@@ -64,11 +64,15 @@ var isPublished = async (blogId, env) => {
     var params = {
         TableName: `${env}BLOG_POSTS`,
         ExpressionAttributeValues: {
-            ':s': {
+            ':id': {
                 S: blogId
+            },
+            ':pub': {
+                BOOL: true
             }
         },
-        KeyConditionExpression: 'ID = :s',
+        KeyConditionExpression: 'ID = :id',
+        FilterExpression: 'Published = :pub',
         ProjectionExpression: 'ID'
     };
 
