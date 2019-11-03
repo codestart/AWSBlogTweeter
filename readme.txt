@@ -1,6 +1,6 @@
 // Start docker for the build to use
 
-// Delete previous build:
+// Delete previous build (PowerShell terminal in VSCode):
 del .\.aws-sam\ -R
 
 // Build
@@ -23,3 +23,5 @@ sam local invoke tweetOutBlogPosts -d 5678 --no-event --env-vars config/dev.json
 
 // How to run sam deploy but not deploy tests OR node_modules (taken care of by node_modules layer)
 // ...   also create script for when you want to deploy the node_modules layer (simply a separate template.yml?)
+
+Then using the Debugger in VSCode select 'Run'
