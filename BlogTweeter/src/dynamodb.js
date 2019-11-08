@@ -222,7 +222,8 @@ var incAuthorPostCount = (authorName, env) => {
 };
 
 var handleAuthorName = async (authorName, env) => {
-    var returnValue = authorName;
+    var authorReference = authorName;
+    var isTwitterHandle = false;
     await checkAuthorName(authorName, env).then((data) => {
         if (data.Count === 1 && data.Items[0].TwitterHandle.S === DEFAULT_HANDLE) {
             console.log('Seen before, blank twitter handle.');
@@ -231,7 +232,8 @@ var handleAuthorName = async (authorName, env) => {
             var twitterHandle = data.Items[0].TwitterHandle.S;
             console.log('Seen before, twitter handle is:', twitterHandle);
             if (isValidTwitterHandle(twitterHandle)) {
-                returnValue = twitterHandle;
+                authorReference = twitterHandle;
+                isTwitterHandle = true;
             }
             incAuthorPostCount(authorName, env);
         } else if (data.Count === 1 && data.Items[0].TwitterHandle.S === 'NONE') {
@@ -240,7 +242,7 @@ var handleAuthorName = async (authorName, env) => {
         } else if (data.Count === 0) {
             console.log('Never seen before, adding...');
             addNewAuthor(authorName, env);
-            returnValue += NEW_AUTHOR_DECORATION;
+            authorReference += NEW_AUTHOR_DECORATION;
         } else {
             console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
         }
@@ -249,7 +251,10 @@ var handleAuthorName = async (authorName, env) => {
         console.log('err:', JSON.stringify(err, undefined, 4));
     });
 
-    return returnValue;
+    return {
+        authorReference,
+        isTwitterHandle
+    }
 };
 
 var reArrangeEntries = (data, env) => {
