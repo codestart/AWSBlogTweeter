@@ -9,6 +9,11 @@ var ses = new AWS.SES({
 
 /* The following example sends a formatted email: */
 
+var standardReporter = (err, data) => {
+    if (err) console.log('SES Error:', err, err.stack); // an error occurred
+    else console.log('SES Success:', data); // successful response
+};
+
 var sendEmailNotification = (subject, body) => {
     var params = {
         Destination: {
@@ -29,12 +34,11 @@ var sendEmailNotification = (subject, body) => {
         Source: "andoni.oc@gmail.com"
     };
 
-    ses.sendEmail(params, function (err, data) {
-        if (err) console.log('SES Error:', err, err.stack); // an error occurred
-        else console.log('SES Success:', data); // successful response
-    });
+    ses.sendEmail(params, standardReporter);
 };
 
 module.exports = {
-    sendEmailNotification
+    sendEmailNotification,
+    ses,
+    standardReporter
 };

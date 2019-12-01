@@ -13,7 +13,8 @@ var sendTweet = (twitterAccount, tweetBodyText) => {
         if (error) {
             console.log(error);
         } else {
-            console.log(tweet); // Tweet details.
+            console.log('Sending tweet:', tweet.id_str, '\n',
+                    'Text:', tweet.text); // Tweet details.
             //            console.log(response); // Raw response object.
         }
     }));

@@ -28,12 +28,10 @@ var sendTweets = function (event, context, callback) {
     axios.get(awsBlogUrl).then(async (response) => {
         // success case expression:
         const blogPosts = response.data;
-        var event = [];
-        var urlList = []; // Must be same size or bigger than event array above.
-        var eventNo = 0;
+        let uniqueSectionNames = new Set();
+        var blogInfoToBeSaved = []; // Must be same size or bigger than uniqueSectionNameList array above.
         var unTweetedUrlCounter = 0;
         // Work from the oldest back to 0 (the newest)
-        blog_post_items:
         for (var i = blogPosts.items.length - 1; i >= 0; i--) {
             var author = JSON.parse(blogPosts.items[i].author);
             var url = blogPosts.items[i].additionalFields.link;
@@ -43,7 +41,7 @@ var sendTweets = function (event, context, callback) {
 
             if (!await dynamo.isPublished(id, ENV)) {
                 // Only add URLs to be posted, to the list (not the number-to-check)
-                urlList[unTweetedUrlCounter++] = {
+                blogInfoToBeSaved[unTweetedUrlCounter++] = {
                     id,
                     slug: blogPosts.items[i].additionalFields.slug,
                     createdBy: blogPosts.items[i].createdBy,
@@ -54,20 +52,14 @@ var sendTweets = function (event, context, callback) {
                     section,
                     author
                 };
-                for (var x = 0; x < event.length; x++) {
-                    // More than one blog post is new - checking for duplicate section names to query only unique names
-                    if (event[x].URLSection.S === section) continue blog_post_items;
-                }
-                // Create a list of unique section names
-                event[eventNo] = {
+                uniqueSectionNames.add({
                     'URLSection': {
                         S: section
                     }
-                };
-                eventNo++;
+                });
             }
         }
-        return event.length > 0 ? dynamo.getBlogDetails(event, undefined, urlList, ENV) : {
+        return uniqueSectionNames.size > 0 ? dynamo.getBlogDetails([...uniqueSectionNames], blogInfoToBeSaved, ENV) : {
             statusCode: 200,
             body: []
         };

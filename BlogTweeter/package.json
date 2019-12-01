@@ -2,9 +2,9 @@
   "name": "awsblogtweeter",
   "version": "1.0.0",
   "description": "Tweet out AWS Blog entries",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "jasmine --config=test/jasmine.json"
+    "test": "node config/jasmine.js"
   },
   "repository": {
     "type": "git",
@@ -27,7 +27,8 @@
     "twitter": "^1.7.1"
   },
   "devDependencies": {
+    "aws-sdk": "^2.536.0",
     "jasmine": "^3.5.0",
-    "aws-sdk": "^2.536.0"
+    "jasmine-console-reporter": "^3.1.0"
   }
 }

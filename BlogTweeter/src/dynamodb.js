@@ -10,11 +10,11 @@ var ddb = new AWS2.DynamoDB({
 const DEFAULT_HANDLE = '@';
 const NEW_AUTHOR_DECORATION = '*';
 
-var getBlogDetails = async (event, context, body, env) => {
+var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
     var params = {
         RequestItems: {
             [`${env}AWS_BLOGS`]: {
-                Keys: event,
+                Keys: uniqueSectionNameList,
                 ProjectionExpression: 'URLSection, BlogSection, Hashtag'
             }
         }
@@ -27,7 +27,7 @@ var getBlogDetails = async (event, context, body, env) => {
         return {
             statusCode: 200,
             ref: data,
-            body
+            blogInfoToBeSaved
         };
     } catch (error) {
         return {
@@ -301,6 +301,7 @@ var isValidTwitterHandle = handle => {
 };
 
 module.exports = {
+    ddb,
     isPublished,
     getBlogDetails,
     checkAuthorName,
