@@ -1,6 +1,8 @@
 var Twitter = require('twitter');
 var fs = require('fs');
 
+const ses = require('./src/ses.js');
+
 var client = async (twitterAccount) => {
     var doc = JSON.parse(await fs.readFileSync('./src/twitter.json', 'utf8'));
     return await new Twitter(doc[twitterAccount]);
@@ -11,7 +13,7 @@ var sendTweet = (twitterAccount, tweetBodyText) => {
         status: tweetBodyText
     }, function (error, tweet, response) {
         if (error) {
-            console.log(error);
+            ses.sendEmailNotification('Twitter.js Error - sendTweet()', error);
         } else {
             console.log('Sending tweet:', tweet.id_str, '\n',
                     'Text:', tweet.text); // Tweet details.
@@ -48,9 +50,9 @@ var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
         follow: notifyUser
     }, function (error, twitterAccountDetails, response) {
         if (error) {
-            console.log(error);
+            ses.sendEmailNotification('Twitter.js Error - unconditionalFollow()', error);
         } else {
-            console.log(twitterAccountDetails);
+            console.log('TW3:', twitterAccountDetails);
             //            console.log(response); // Raw response object.
         }
     }));
