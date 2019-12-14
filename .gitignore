@@ -5,6 +5,7 @@ node_modules
 
 twitter.json
 dev.json
+packaged.yaml
 
 /.aws-sam
 /.vscode
