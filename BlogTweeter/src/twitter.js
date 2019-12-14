@@ -1,7 +1,7 @@
 var Twitter = require('twitter');
 var fs = require('fs');
 
-const ses = require('./src/ses.js');
+const ses = require('./ses.js');
 
 var client = async (twitterAccount) => {
     var doc = JSON.parse(await fs.readFileSync('./src/twitter.json', 'utf8'));

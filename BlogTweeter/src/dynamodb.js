@@ -14,7 +14,7 @@ var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
     var params = {
         RequestItems: {
             [`${env}AWS_BLOGS`]: {
-                Keys: uniqueSectionNameList,
+                Keys: [...uniqueSectionNameList],
                 ProjectionExpression: 'URLSection, BlogSection, Hashtag'
             }
         }
@@ -27,7 +27,7 @@ var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
         return {
             statusCode: 200,
             ref: data,
-            blogInfoToBeSaved
+            body: blogInfoToBeSaved
         };
     } catch (error) {
         return {

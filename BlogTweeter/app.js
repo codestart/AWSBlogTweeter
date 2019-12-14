@@ -59,7 +59,7 @@ var sendTweets = function (event, context, callback) {
                 });
             }
         }
-        return uniqueSectionNames.size > 0 ? dynamo.getBlogDetails([...uniqueSectionNames], blogInfoToBeSaved, ENV) : {
+        return uniqueSectionNames.size > 0 ? dynamo.getBlogDetails(uniqueSectionNames, blogInfoToBeSaved, ENV) : {
             statusCode: 200,
             body: []
         };
