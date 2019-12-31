@@ -52,11 +52,7 @@ var sendTweets = function (event, context, callback) {
                     section,
                     author
                 };
-                uniqueSectionNames.add({
-                    'URLSection': {
-                        S: section
-                    }
-                });
+                uniqueSectionNames.add(section);
             }
         }
         return uniqueSectionNames.size > 0 ? dynamo.getBlogDetails(uniqueSectionNames, blogInfoToBeSaved, ENV) : {

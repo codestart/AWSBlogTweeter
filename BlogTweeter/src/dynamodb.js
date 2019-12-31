@@ -11,10 +11,18 @@ const DEFAULT_HANDLE = '@';
 const NEW_AUTHOR_DECORATION = '*';
 
 var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
+    var builtSectionNameObjects = [];
+    uniqueSectionNameList.forEach((sectionName) => {
+        builtSectionNameObjects.push({
+            'URLSection': {
+                S: sectionName
+            }
+        })
+    });
     var params = {
         RequestItems: {
             [`${env}AWS_BLOGS`]: {
-                Keys: [...uniqueSectionNameList],
+                Keys: builtSectionNameObjects,
                 ProjectionExpression: 'URLSection, BlogSection, Hashtag'
             }
         }
