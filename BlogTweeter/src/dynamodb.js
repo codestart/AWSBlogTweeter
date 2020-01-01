@@ -10,11 +10,19 @@ var ddb = new AWS2.DynamoDB({
 const DEFAULT_HANDLE = '@';
 const NEW_AUTHOR_DECORATION = '*';
 
-var getBlogDetails = async (event, context, body, env) => {
+var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
+    var builtSectionNameObjects = [];
+    uniqueSectionNameList.forEach((sectionName) => {
+        builtSectionNameObjects.push({
+            'URLSection': {
+                S: sectionName
+            }
+        })
+    });
     var params = {
         RequestItems: {
             [`${env}AWS_BLOGS`]: {
-                Keys: event,
+                Keys: builtSectionNameObjects,
                 ProjectionExpression: 'URLSection, BlogSection, Hashtag'
             }
         }
@@ -27,7 +35,7 @@ var getBlogDetails = async (event, context, body, env) => {
         return {
             statusCode: 200,
             ref: data,
-            body
+            body: blogInfoToBeSaved
         };
     } catch (error) {
         return {
@@ -64,11 +72,15 @@ var isPublished = async (blogId, env) => {
     var params = {
         TableName: `${env}BLOG_POSTS`,
         ExpressionAttributeValues: {
-            ':s': {
+            ':id': {
                 S: blogId
+            },
+            ':pub': {
+                BOOL: true
             }
         },
-        KeyConditionExpression: 'ID = :s',
+        KeyConditionExpression: 'ID = :id',
+        FilterExpression: 'Published = :pub',
         ProjectionExpression: 'ID'
     };
 
@@ -218,7 +230,8 @@ var incAuthorPostCount = (authorName, env) => {
 };
 
 var handleAuthorName = async (authorName, env) => {
-    var returnValue = authorName;
+    var authorReference = authorName;
+    var isTwitterHandle = false;
     await checkAuthorName(authorName, env).then((data) => {
         if (data.Count === 1 && data.Items[0].TwitterHandle.S === DEFAULT_HANDLE) {
             console.log('Seen before, blank twitter handle.');
@@ -227,7 +240,8 @@ var handleAuthorName = async (authorName, env) => {
             var twitterHandle = data.Items[0].TwitterHandle.S;
             console.log('Seen before, twitter handle is:', twitterHandle);
             if (isValidTwitterHandle(twitterHandle)) {
-                returnValue = twitterHandle;
+                authorReference = twitterHandle;
+                isTwitterHandle = true;
             }
             incAuthorPostCount(authorName, env);
         } else if (data.Count === 1 && data.Items[0].TwitterHandle.S === 'NONE') {
@@ -236,7 +250,7 @@ var handleAuthorName = async (authorName, env) => {
         } else if (data.Count === 0) {
             console.log('Never seen before, adding...');
             addNewAuthor(authorName, env);
-            returnValue += NEW_AUTHOR_DECORATION;
+            authorReference += NEW_AUTHOR_DECORATION;
         } else {
             console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
         }
@@ -245,7 +259,10 @@ var handleAuthorName = async (authorName, env) => {
         console.log('err:', JSON.stringify(err, undefined, 4));
     });
 
-    return returnValue;
+    return {
+        authorReference,
+        isTwitterHandle
+    }
 };
 
 var reArrangeEntries = (data, env) => {
@@ -292,6 +309,7 @@ var isValidTwitterHandle = handle => {
 };
 
 module.exports = {
+    ddb,
     isPublished,
     getBlogDetails,
     checkAuthorName,

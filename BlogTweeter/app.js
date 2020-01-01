@@ -5,7 +5,8 @@ const ses = require('./src/ses.js');
 const twitter = require('./src/twitter.js');
 
 const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
-const TWITTER_ON = (process.env.TWITTER_ON.toLowerCase().trim() === 'true');
+var twitterOn = process.env.TWITTER_ON;
+const TWITTER_ON = (twitterOn === undefined ? false : twitterOn.toLowerCase().trim() === 'true');
 const TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
 const ENV = process.env.ENV;
 
@@ -23,16 +24,14 @@ const awsBlogUrl =
     `&locale=${locale}`;
 // https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
 
-exports.sendTweets = function (event, context, callback) {
+var sendTweets = function (event, context, callback) {
     axios.get(awsBlogUrl).then(async (response) => {
         // success case expression:
         const blogPosts = response.data;
-        var event = [];
-        var urlList = []; // Must be same size or bigger than event array above.
-        var eventNo = 0;
+        let uniqueSectionNames = new Set();
+        var blogInfoToBeSaved = []; // Must be same size or bigger than uniqueSectionNameList array above.
         var unTweetedUrlCounter = 0;
         // Work from the oldest back to 0 (the newest)
-        blog_post_items:
         for (var i = blogPosts.items.length - 1; i >= 0; i--) {
             var author = JSON.parse(blogPosts.items[i].author);
             var url = blogPosts.items[i].additionalFields.link;
@@ -42,7 +41,7 @@ exports.sendTweets = function (event, context, callback) {
 
             if (!await dynamo.isPublished(id, ENV)) {
                 // Only add URLs to be posted, to the list (not the number-to-check)
-                urlList[unTweetedUrlCounter++] = {
+                blogInfoToBeSaved[unTweetedUrlCounter++] = {
                     id,
                     slug: blogPosts.items[i].additionalFields.slug,
                     createdBy: blogPosts.items[i].createdBy,
@@ -53,20 +52,10 @@ exports.sendTweets = function (event, context, callback) {
                     section,
                     author
                 };
-                for (var x = 0; x < event.length; x++) {
-                    // More than one blog post is new - checking for duplicate section names to query only unique names
-                    if (event[x].URLSection.S === section) continue blog_post_items;
-                }
-                // Create a list of unique section names
-                event[eventNo] = {
-                    'URLSection': {
-                        S: section
-                    }
-                };
-                eventNo++;
+                uniqueSectionNames.add(section);
             }
         }
-        return event.length > 0 ? dynamo.getBlogDetails(event, undefined, urlList, ENV) : {
+        return uniqueSectionNames.size > 0 ? dynamo.getBlogDetails(uniqueSectionNames, blogInfoToBeSaved, ENV) : {
             statusCode: 200,
             body: []
         };
@@ -81,8 +70,8 @@ exports.sendTweets = function (event, context, callback) {
                     var output =
                         'The AWS ' + resolve.ref[item.section][0] +
                         ' Blog #' + resolve.ref[item.section][1] +
-                        ' ' + item.url +
-                        await authorsList(item, ENV);
+                        '\n' + item.url +
+                        '\n' + await authorsList(item, ENV);
 
                     // console.log('Tweeting:', output);
                     try {
@@ -137,37 +126,65 @@ var recordTweet = (tweet, env) => {
 };
 
 var authorsList = async (elementData, env) => {
-    const STUB = ' by: ';
-    const SEPARATOR = ' and ';
     const ABANDON_VALUES = ['publicsector', 'AWS Admin'];
 
+    var output = [];
     var abandonReturn = false;
-    var output = '';
 
-    for (var person of elementData.author) {
-        for (var value of ABANDON_VALUES) {
-            if (person === value) abandonReturn = true;
+    listAuthors:
+    for (var authorName of elementData.author) {
+        for (var abandonValue of ABANDON_VALUES) {
+            if (authorName === abandonValue) {
+                abandonReturn = true;
+                break listAuthors;
+            }
         }
 
-        await dynamo.handleAuthorName(person, env).then((resolve) => {
-            var isValidHandle = dynamo.isValidTwitterHandle(resolve);
+        await dynamo.handleAuthorName(authorName, env).then((author) => {
+            var isValidHandle = false;
+            if (author.isTwitterHandle) {
+                isValidHandle = dynamo.isValidTwitterHandle(author.authorReference);
+            }
+
             if (isValidHandle) {
                 if (TWITTER_ON) {
-                    twitter.follow(TWITTER_ACCOUNT, resolve);
+                    twitter.follow(TWITTER_ACCOUNT, author.authorReference);
                 } else {
-                    console.log('TWITTER_ON=false sending follow to:', resolve);
+                    console.log('TWITTER_ON=false sending follow to:', author.authorReference);
                 }
             }
-            output += resolve;
+            output.push(author.authorReference);
         }).catch((err) => {
             console.log('Error on authorsList:', elementData);
             console.log('authorsList err:', JSON.stringify(err, undefined, 4));
         });
-
-        if (elementData.author[elementData.author.length - 1] !== person) {
-            output += SEPARATOR;
-        }
     }
 
-    return (abandonReturn ? '' : STUB + output);
+    return abandonReturn ? '' : generateAuthorList(output);
+};
+
+var generateAuthorList = (authors) => {
+    var authorList = '';
+    const STUB = 'By: ';
+    const SEPARATOR_AND = ' and ';
+    const SEPARATOR_COMMA = ', ';
+
+    var currentAuthorNumber = authors.length;
+    for (var author of authors) {
+        authorList += author;
+        if (currentAuthorNumber > 2) authorList += SEPARATOR_COMMA;
+        else if (currentAuthorNumber == 2) authorList += SEPARATOR_AND;
+
+        currentAuthorNumber--;
+    }
+
+    return authorList == '' ? '' : STUB + authorList;
+};
+
+module.exports = {
+    sendTweets,
+    outputTweetsSent,
+    recordTweet,
+    authorsList,
+    generateAuthorList
 };

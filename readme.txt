@@ -1,6 +1,6 @@
 // Start docker for the build to use
 
-// Delete previous build:
+// Delete previous build (PowerShell terminal in VSCode):
 del .\.aws-sam\ -R
 
 // Build
@@ -23,3 +23,15 @@ sam local invoke tweetOutBlogPosts -d 5678 --no-event --env-vars config/dev.json
 
 // How to run sam deploy but not deploy tests OR node_modules (taken care of by node_modules layer)
 // ...   also create script for when you want to deploy the node_modules layer (simply a separate template.yml?)
+
+// Then using the Debugger in VSCode select 'Run'
+
+// Once you've run a few times and debugged all the issues and fixed them...
+// Had to comment-out the nodejs.jar section of the template file 1st. Not sure what to do there???
+sam package --template-file config/template.yml --s3-bucket awsblogtweeter --output-template-file packaged.yaml
+
+// Then this command is given to you by the output of the previous command:
+// Once you get the IAM Role created correctly
+// Then be sure that your function in your template file has a name you don't use already!
+// Then:
+sam deploy --template-file C:\Users\Lakelands\Desktop\NodeJS\AWSBlogTweeter\packaged.yaml --stack-name aws-blog-tweeter --capabilities CAPABILITY_IAM
