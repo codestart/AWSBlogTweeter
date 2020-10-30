@@ -4,9 +4,10 @@ node_modules
 *.csv
 
 twitter.json
-dev.json
+environment_variables.json
 packaged.yaml
 
 /.aws-sam
 /.vscode
 /RecycleBin
+/policyHolder

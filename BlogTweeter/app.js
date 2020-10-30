@@ -29,8 +29,8 @@ var sendTweets = function (event, context, callback) {
         // success case expression:
         const blogPosts = response.data;
         let uniqueSectionNames = new Set();
-        var blogInfoToBeSaved = []; // Must be same size or bigger than uniqueSectionNameList array above.
-        var unTweetedUrlCounter = 0;
+        var blogPostInfoToBeSaved = []; // Must be same size or bigger than uniqueSectionNameList array above.
+        var unTweetedBlogPostCounter = 0;
         // Work from the oldest back to 0 (the newest)
         for (var i = blogPosts.items.length - 1; i >= 0; i--) {
             var author = JSON.parse(blogPosts.items[i].author);
@@ -41,7 +41,7 @@ var sendTweets = function (event, context, callback) {
 
             if (!await dynamo.isPublished(id, ENV)) {
                 // Only add URLs to be posted, to the list (not the number-to-check)
-                blogInfoToBeSaved[unTweetedUrlCounter++] = {
+                blogPostInfoToBeSaved[unTweetedBlogPostCounter++] = {
                     id,
                     slug: blogPosts.items[i].additionalFields.slug,
                     createdBy: blogPosts.items[i].createdBy,
@@ -55,25 +55,26 @@ var sendTweets = function (event, context, callback) {
                 uniqueSectionNames.add(section);
             }
         }
-        return uniqueSectionNames.size > 0 ? dynamo.getBlogDetails(uniqueSectionNames, blogInfoToBeSaved, ENV) : {
-            statusCode: 200,
-            body: []
-        };
-    }).then(async (resolve) => {
+        var returnValue;
+        if (uniqueSectionNames.size > 0) {
+            returnValue = await dynamo.getBlogDetails(uniqueSectionNames, ENV);
+            returnValue.body = blogPostInfoToBeSaved;
+        } else {
+            returnValue = {statusCode: 200, body: []};
+        }
+        return returnValue;
+    }).then(async (currPollNewBlogPostDetails) => {
         var tweetsSent = [];
-        if (resolve.statusCode === 200) {
-            for (var item of resolve.body) {
-                // console.log('resolve:', JSON.stringify(resolve, undefined, 4));
-
-                if (resolve.ref.hasOwnProperty(item.section)) {
+        if (currPollNewBlogPostDetails.statusCode === 200) {
+            for (var item of currPollNewBlogPostDetails.body) {
+                if (currPollNewBlogPostDetails.blogLookupInfo.hasOwnProperty(item.section)) {
                     recordTweet(item, ENV);
                     var output =
-                        'The AWS ' + resolve.ref[item.section][0] +
-                        ' Blog #' + resolve.ref[item.section][1] +
+                        'The AWS ' + currPollNewBlogPostDetails.blogLookupInfo[item.section][0] +
+                        ' Blog #' + currPollNewBlogPostDetails.blogLookupInfo[item.section][1] +
                         '\n' + item.url +
                         '\n' + await authorsList(item, ENV);
 
-                    // console.log('Tweeting:', output);
                     try {
                         if (TWITTER_ON) {
                             twitter.sendTweet(TWITTER_ACCOUNT, output);
@@ -87,13 +88,13 @@ var sendTweets = function (event, context, callback) {
                     }
                 } else {
                     // TODO: A new blog has been created - Add to AWS_BLOGS table.
-                    ses.sendEmailNotification('Unknown blog name:' + item.section, 'So NOT tweeting. Add new section to AWS_BLOGS.\napp.js ln:101');
-                    console.log('Unknown blog name:' + item.section, 'Add to AWS_BLOGS table!');
+                    ses.sendEmailNotification('Unknown/new blog name: ' + item.section, 'So NOT tweeting. Add new section to AWS_BLOGS.\nEmail sent in app.js');
+                    console.log('Unknown blog name: ' + item.section, 'Add to AWS_BLOGS table!');
                 }
             }
         } else {
-            console.log('Status Code is: ', resolve.statusCode);
-            console.log('Error Message is: ', resolve.error);
+            console.log('Status Code is: ', currPollNewBlogPostDetails.statusCode);
+            console.log('Error Message is: ', currPollNewBlogPostDetails.error);
         }
         callback(undefined, outputTweetsSent(tweetsSent));
     }).catch((error) => {

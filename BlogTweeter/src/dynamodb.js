@@ -10,7 +10,7 @@ var ddb = new AWS2.DynamoDB({
 const DEFAULT_HANDLE = '@';
 const NEW_AUTHOR_DECORATION = '*';
 
-var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
+var getBlogDetails = async (uniqueSectionNameList, env) => {
     var builtSectionNameObjects = [];
     uniqueSectionNameList.forEach((sectionName) => {
         builtSectionNameObjects.push({
@@ -29,13 +29,12 @@ var getBlogDetails = async (uniqueSectionNameList, blogInfoToBeSaved, env) => {
     };
 
     try {
-        var data = await ddb.batchGetItem(params).promise();
-        data = reArrangeEntries(data, env);
+        var blogDetails = await ddb.batchGetItem(params).promise();
+        blogDetails = reArrangeEntries(blogDetails, env);
 
         return {
             statusCode: 200,
-            ref: data,
-            body: blogInfoToBeSaved
+            blogLookupInfo: blogDetails
         };
     } catch (error) {
         return {
@@ -265,11 +264,11 @@ var handleAuthorName = async (authorName, env) => {
     }
 };
 
-var reArrangeEntries = (data, env) => {
-    var resultsArr = data.Responses[`${env}AWS_BLOGS`];
+var reArrangeEntries = (detailsOfBlogs, env) => {
+    var detailsOfBlogsAsArr = detailsOfBlogs.Responses[`${env}AWS_BLOGS`];
     var output = {};
-    for (var result of resultsArr) {
-        output[result.URLSection.S] = [result.BlogSection.S, result.Hashtag.S];
+    for (var blog of detailsOfBlogsAsArr) {
+        output[blog.URLSection.S] = [blog.BlogSection.S, blog.Hashtag.S];
     }
     return output;
 };
