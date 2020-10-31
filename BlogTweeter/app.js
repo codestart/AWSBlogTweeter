@@ -77,10 +77,11 @@ var sendTweets = function (event, context, callback) {
 
                     try {
                         if (TWITTER_ON) {
+                            console.log('TWITTER_ON=true - Tweeting:', JSON.stringify(output, undefined, 4))
                             twitter.sendTweet(TWITTER_ACCOUNT, output);
                         } else {
                             console.log('TWITTER_ON=false - NOT Tweeting:', output);
-                            ses.sendEmailNotification('Tweet Not Sent', output);
+                            ses.sendEmailNotification('Tweet Not Sent', 'Twitter Off:\n' + output);
                         }
                         tweetsSent.push(output);
                     } catch (error) {

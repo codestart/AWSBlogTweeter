@@ -13,7 +13,8 @@ var sendTweet = (twitterAccount, tweetBodyText) => {
         status: tweetBodyText
     }, function (error, tweet, response) {
         if (error) {
-            ses.sendEmailNotification('Twitter.js Error - sendTweet()', error);
+            console.log('Twitter.js Error - sendTweet()', 'sendTweetError: ' + error)
+            ses.sendEmailNotification('Twitter.js Error - sendTweet()', 'sendTweetError: ' + error);
         } else {
             console.log('Sending tweet:', tweet.id_str, '\n',
                     'Text:', tweet.text); // Tweet details.
@@ -50,7 +51,8 @@ var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
         follow: notifyUser
     }, function (error, twitterAccountDetails, response) {
         if (error) {
-            ses.sendEmailNotification('Twitter.js Error - unconditionalFollow()', error);
+            console.log('Twitter.js Error - unconditionalFollow()', 'unconditionalFollow() error: ' + error)
+            ses.sendEmailNotification('Twitter.js Error - unconditionalFollow()', 'unconditionalFollow() error: ' + error);
         } else {
             console.log('TW3:', twitterAccountDetails);
             //            console.log(response); // Raw response object.
