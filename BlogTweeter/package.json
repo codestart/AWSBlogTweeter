@@ -22,10 +22,6 @@
   },
   "homepage": "https://github.com/codestart/AWSBlogTweeter#readme",
   "dependencies": {
-    "aws-sdk": "2.781.0",
-    "axios": "0.21.0",
-    "npm": "6.14.8",
-    "twitter": "1.7.1"
   },
   "devDependencies": {
     "aws-sdk": "2.781.0",

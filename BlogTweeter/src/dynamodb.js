@@ -44,7 +44,7 @@ var getBlogDetails = async (uniqueSectionNameList, env) => {
     }
 };
 
-var checkAuthorName = async (authorName, env) => {
+var replaceWithTwitterHandleIfKnown = async (authorName, env) => {
     var params = {
         TableName: `${env}TWITTER_HANDLES`,
         ExpressionAttributeValues: {
@@ -57,7 +57,9 @@ var checkAuthorName = async (authorName, env) => {
     };
 
     try {
-        return await ddb.query(params).promise();
+        var twitterHandle = await ddb.query(params).promise();
+
+        return twitterHandle.Count == 0 ? authorName : twitterHandle.Items[0].TwitterHandle.S;
     } catch (error) {
         console.log('Error is:', error);
         return {
@@ -96,7 +98,7 @@ var isPublished = async (blogId, env) => {
 
 // Default initial value for Twitter Handle is blank NOT 'NONE' until it has been searched-for!
 // This does not need to be synch'd once it is done!
-var addNewAuthor = (authorName, env) => {
+var addNewAuthor = async (authorName, env) => {
     var returnValue = {};
     var params = {
         TableName: `${env}TWITTER_HANDLES`,
@@ -118,16 +120,14 @@ var addNewAuthor = (authorName, env) => {
     };
 
     try {
-        returnValue = ddb.putItem(params).promise();
+        return await ddb.putItem(params).promise();
     } catch (error) {
         console.log('Error is:', error);
-        returnValue = {
+        return {
             statusCode: 400,
             error: `Could not post: ${error}`
         };
     }
-
-    return returnValue;
 };
 
 var recordTweetVitals = async (tweetVitals, env) => {
@@ -166,7 +166,7 @@ var recordTweetVitals = async (tweetVitals, env) => {
         }
     };
 
-    returnValue = ddb.putItem(params).promise().catch((err) => {
+    returnValue = await ddb.putItem(params).promise().catch((err) => {
         console.log(undefined === err ? 'Undefined Error!' : err.message);
     });
 
@@ -190,7 +190,7 @@ var recordAuthorTweetLink = async (id, authorName, env) => {
     };
 
     try {
-        returnValue = ddb.putItem(params).promise();
+        returnValue = await ddb.putItem(params).promise();
     } catch (error) {
         console.log('Error is:', error);
         returnValue = {
@@ -202,7 +202,7 @@ var recordAuthorTweetLink = async (id, authorName, env) => {
     return returnValue;
 };
 
-var incAuthorPostCount = (authorName, env) => {
+var incAuthorPostCount = async (authorName, env) => {
     var paramsUpdate = {
         TableName: `${env}TWITTER_HANDLES`,
         Key: {
@@ -220,7 +220,7 @@ var incAuthorPostCount = (authorName, env) => {
 
     try {
         // console.log(JSON.stringify(paramsUpdate, undefined, 4));
-        ddb.updateItem(paramsUpdate).promise().catch((err) => {
+        await ddb.updateItem(paramsUpdate).promise().catch((err) => {
             console.log('Increment counter function err:', err);
         });
     } catch (error) {
@@ -228,40 +228,44 @@ var incAuthorPostCount = (authorName, env) => {
     }
 };
 
-var handleAuthorName = async (authorName, env) => {
-    var authorReference = authorName;
-    var isTwitterHandle = false;
-    await checkAuthorName(authorName, env).then((data) => {
-        if (data.Count === 1 && data.Items[0].TwitterHandle.S === DEFAULT_HANDLE) {
-            console.log('Seen before, blank twitter handle.');
-            incAuthorPostCount(authorName, env);
-        } else if (data.Count === 1 && data.Items[0].TwitterHandle.S !== 'NONE') {
-            var twitterHandle = data.Items[0].TwitterHandle.S;
-            console.log('Seen before, twitter handle is:', twitterHandle);
-            if (isValidTwitterHandle(twitterHandle)) {
-                authorReference = twitterHandle;
-                isTwitterHandle = true;
-            }
-            incAuthorPostCount(authorName, env);
-        } else if (data.Count === 1 && data.Items[0].TwitterHandle.S === 'NONE') {
-            console.log('Seen before, no twitter handle.');
-            incAuthorPostCount(authorName, env);
-        } else if (data.Count === 0) {
-            console.log('Never seen before, adding...');
-            addNewAuthor(authorName, env);
-            authorReference += NEW_AUTHOR_DECORATION;
-        } else {
-            console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
-        }
-    }).catch((err) => {
-        console.log('Error on checkAuthorName:', authorName);
+var handleOneAuthorName = async (authorName, env) => {
+    var authorNameOrTwitter = await replaceWithTwitterHandleIfKnown(authorName, env);
+    var author = await saveAuthorNameToDatabase(authorName, authorNameOrTwitter, env).catch((err) => {
         console.log('err:', JSON.stringify(err, undefined, 4));
     });
+
+    return author;
+};
+
+var saveAuthorNameToDatabase = async (authorName, authorNameOrTwitterIfAvailable, env) => {
+    var authorReference = authorName;
+    var isTwitterHandle = false;
+
+    if (authorNameOrTwitterIfAvailable === DEFAULT_HANDLE) {
+        console.log('Seen before, blank twitter handle.');
+        await incAuthorPostCount(authorName, env);
+    } else if (authorName !== authorNameOrTwitterIfAvailable && authorNameOrTwitterIfAvailable !== 'NONE') {
+        console.log('Seen before, twitter handle is:', authorNameOrTwitterIfAvailable);
+        if(isValidTwitterHandle(authorNameOrTwitterIfAvailable)) {
+            authorReference = authorNameOrTwitterIfAvailable;
+            isTwitterHandle = true; // Used later in whether to follow this author.
+        }
+        await incAuthorPostCount(authorName, env);
+    } else if (authorNameOrTwitterIfAvailable === 'NONE') {
+        console.log('Seen before, no twitter handle.');
+        await incAuthorPostCount(authorName, env);
+    } else if (authorName === authorNameOrTwitterIfAvailable) {
+        console.log('Never seen before, adding...');
+        await addNewAuthor(authorName, env);
+        authorReference += NEW_AUTHOR_DECORATION;
+    } else {
+        console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
+    }
 
     return {
         authorReference,
         isTwitterHandle
-    }
+    };
 };
 
 var reArrangeEntries = (detailsOfBlogs, env) => {
@@ -311,8 +315,8 @@ module.exports = {
     ddb,
     isPublished,
     getBlogDetails,
-    checkAuthorName,
-    handleAuthorName,
+    replaceWithTwitterHandleIfKnown,
+    handleOneAuthorName,
     recordTweetVitals,
     isValidTwitterHandle,
     recordAuthorTweetLink

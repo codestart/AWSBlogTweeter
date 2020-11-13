@@ -4,10 +4,8 @@ AWS.config.update({
     region: 'eu-west-1'
 });
 var ses = new AWS.SES({
-    apiVersion: '2010-12-01'
+    apiVersion: '2019-09-27'
 });
-
-/* The following example sends a formatted email: */
 
 var standardReporter = (err, data) => {
     if (err) console.log('SES Error:', err, err.stack); // an error occurred
@@ -34,7 +32,9 @@ var sendEmailNotification = (subject, body) => {
         Source: "andoni.oc@gmail.com"
     };
 
-    ses.sendEmail(params, standardReporter);
+    return new Promise(() => ses.sendEmail(params, standardReporter), () => {
+        console.log('Error in Email Send.');
+    });
 };
 
 module.exports = {
