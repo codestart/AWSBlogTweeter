@@ -10,7 +10,7 @@ var ddb = new AWS2.DynamoDB({
 const DEFAULT_HANDLE = '@';
 const NEW_AUTHOR_DECORATION = '*';
 
-var getBlogDetails = async (uniqueSectionNameList, env) => {
+var getBlogDetails = async (uniqueSectionNameList, dbSchema) => {
     var builtSectionNameObjects = [];
     uniqueSectionNameList.forEach((sectionName) => {
         builtSectionNameObjects.push({
@@ -21,7 +21,7 @@ var getBlogDetails = async (uniqueSectionNameList, env) => {
     });
     var params = {
         RequestItems: {
-            [`${env}AWS_BLOGS`]: {
+            [`${dbSchema}AWS_BLOGS`]: {
                 Keys: builtSectionNameObjects,
                 ProjectionExpression: 'URLSection, BlogSection, Hashtag'
             }
@@ -30,7 +30,7 @@ var getBlogDetails = async (uniqueSectionNameList, env) => {
 
     try {
         var blogDetails = await ddb.batchGetItem(params).promise();
-        blogDetails = reArrangeEntries(blogDetails, env);
+        blogDetails = reArrangeEntries(blogDetails, dbSchema);
 
         return {
             statusCode: 200,
@@ -44,9 +44,9 @@ var getBlogDetails = async (uniqueSectionNameList, env) => {
     }
 };
 
-var replaceWithTwitterHandleIfKnown = async (authorName, env) => {
+var replaceWithTwitterHandleIfKnown = async (authorName, dbSchema) => {
     var params = {
-        TableName: `${env}TWITTER_HANDLES`,
+        TableName: `${dbSchema}TWITTER_HANDLES`,
         ExpressionAttributeValues: {
             ':s': {
                 S: authorName
@@ -69,9 +69,9 @@ var replaceWithTwitterHandleIfKnown = async (authorName, env) => {
     }
 };
 
-var isPublished = async (blogId, env) => {
+var isPublished = async (blogId, dbSchema) => {
     var params = {
-        TableName: `${env}BLOG_POSTS`,
+        TableName: `${dbSchema}BLOG_POSTS`,
         ExpressionAttributeValues: {
             ':id': {
                 S: blogId
@@ -98,10 +98,10 @@ var isPublished = async (blogId, env) => {
 
 // Default initial value for Twitter Handle is blank NOT 'NONE' until it has been searched-for!
 // This does not need to be synch'd once it is done!
-var addNewAuthor = async (authorName, env) => {
+var addNewAuthor = async (authorName, dbSchema) => {
     var returnValue = {};
     var params = {
-        TableName: `${env}TWITTER_HANDLES`,
+        TableName: `${dbSchema}TWITTER_HANDLES`,
         ReturnConsumedCapacity: "TOTAL",
         Item: {
             "AuthorName": {
@@ -130,10 +130,10 @@ var addNewAuthor = async (authorName, env) => {
     }
 };
 
-var recordTweetVitals = async (tweetVitals, env) => {
+var recordTweetVitals = async (tweetVitals, dbSchema) => {
     var returnValue = {};
     var params = {
-        TableName: `${env}BLOG_POSTS`,
+        TableName: `${dbSchema}BLOG_POSTS`,
         ReturnConsumedCapacity: "TOTAL",
         Item: {
             "ID": {
@@ -174,10 +174,10 @@ var recordTweetVitals = async (tweetVitals, env) => {
 };
 
 // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#batchWriteItem-property
-var recordAuthorTweetLink = async (id, authorName, env) => {
+var recordAuthorTweetLink = async (id, authorName, dbSchema) => {
     var returnValue = {};
     var params = {
-        TableName: `${env}POST_AUTHORS`,
+        TableName: `${dbSchema}POST_AUTHORS`,
         ReturnConsumedCapacity: "TOTAL",
         Item: {
             "PostID": {
@@ -202,9 +202,9 @@ var recordAuthorTweetLink = async (id, authorName, env) => {
     return returnValue;
 };
 
-var incAuthorPostCount = async (authorName, env) => {
+var incAuthorPostCount = async (authorName, dbSchema) => {
     var paramsUpdate = {
-        TableName: `${env}TWITTER_HANDLES`,
+        TableName: `${dbSchema}TWITTER_HANDLES`,
         Key: {
             'AuthorName': {
                 S: authorName
@@ -228,35 +228,35 @@ var incAuthorPostCount = async (authorName, env) => {
     }
 };
 
-var handleOneAuthorName = async (authorName, env) => {
-    var authorNameOrTwitter = await replaceWithTwitterHandleIfKnown(authorName, env);
-    var author = await saveAuthorNameToDatabase(authorName, authorNameOrTwitter, env).catch((err) => {
+var handleOneAuthorName = async (authorName, dbSchema) => {
+    var authorNameOrTwitter = await replaceWithTwitterHandleIfKnown(authorName, dbSchema);
+    var author = await saveAuthorNameToDatabase(authorName, authorNameOrTwitter, dbSchema).catch((err) => {
         console.log('err:', JSON.stringify(err, undefined, 4));
     });
 
     return author;
 };
 
-var saveAuthorNameToDatabase = async (authorName, authorNameOrTwitterIfAvailable, env) => {
+var saveAuthorNameToDatabase = async (authorName, authorNameOrTwitterIfAvailable, dbSchema) => {
     var authorReference = authorName;
     var isTwitterHandle = false;
 
     if (authorNameOrTwitterIfAvailable === DEFAULT_HANDLE) {
         console.log('Seen before, blank twitter handle.');
-        await incAuthorPostCount(authorName, env);
+        await incAuthorPostCount(authorName, dbSchema);
     } else if (authorName !== authorNameOrTwitterIfAvailable && authorNameOrTwitterIfAvailable !== 'NONE') {
         console.log('Seen before, twitter handle is:', authorNameOrTwitterIfAvailable);
         if(isValidTwitterHandle(authorNameOrTwitterIfAvailable)) {
             authorReference = authorNameOrTwitterIfAvailable;
             isTwitterHandle = true; // Used later in whether to follow this author.
         }
-        await incAuthorPostCount(authorName, env);
+        await incAuthorPostCount(authorName, dbSchema);
     } else if (authorNameOrTwitterIfAvailable === 'NONE') {
         console.log('Seen before, no twitter handle.');
-        await incAuthorPostCount(authorName, env);
+        await incAuthorPostCount(authorName, dbSchema);
     } else if (authorName === authorNameOrTwitterIfAvailable) {
         console.log('Never seen before, adding...');
-        await addNewAuthor(authorName, env);
+        await addNewAuthor(authorName, dbSchema);
         authorReference += NEW_AUTHOR_DECORATION;
     } else {
         console.log('Unknown case: Duplicate names?, None-misspelt, Multiple entries?, other?');
@@ -268,8 +268,8 @@ var saveAuthorNameToDatabase = async (authorName, authorNameOrTwitterIfAvailable
     };
 };
 
-var reArrangeEntries = (detailsOfBlogs, env) => {
-    var detailsOfBlogsAsArr = detailsOfBlogs.Responses[`${env}AWS_BLOGS`];
+var reArrangeEntries = (detailsOfBlogs, dbSchema) => {
+    var detailsOfBlogsAsArr = detailsOfBlogs.Responses[`${dbSchema}AWS_BLOGS`];
     var output = {};
     for (var blog of detailsOfBlogsAsArr) {
         output[blog.URLSection.S] = [blog.BlogSection.S, blog.Hashtag.S];

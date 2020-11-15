@@ -1,4 +1,5 @@
 const axios = require('axios');
+const fs = require('fs');
 
 const dynamo = require('./src/dynamodb.js');
 const ses = require('./src/ses.js');
@@ -8,7 +9,8 @@ const NUMBER_TO_CHECK = process.env.NUMBER_TO_CHECK;
 var twitterOn = process.env.TWITTER_ON;
 const TWITTER_ON = (twitterOn === undefined ? false : twitterOn.toLowerCase().trim() === 'true');
 const TWITTER_ACCOUNT = process.env.TWITTER_ACCOUNT;
-const ENV = process.env.ENV;
+const ENVIRONMENT_IN_USE = process.env.ENV;
+var dbSchema;
 
 const BLOG_ADDRESS_STUB = 'https://aws.amazon.com/blogs/';
 
@@ -25,9 +27,13 @@ const awsBlogUrl =
 // https://aws.amazon.com/api/dirs/blog-posts/items?order_by=SortOrderValue&sort_ascending=true&limit=10&locale=en_US
 
 var sendTweets = async () => {
-    var jsonResponseFromAmazon = await axios.get(awsBlogUrl);
-    var formattedBlogPostData = await collectDataForThisPollsBlogPosts(jsonResponseFromAmazon);
-    var statusCodes = await processBlogPostDataForCurrentPoll(formattedBlogPostData);
+    var statusCodes = 'No Data!';
+    var jsonResponseFromAmazon = await environmentSetup();
+
+    if (jsonResponseFromAmazon) {
+        var formattedBlogPostData = await collectDataForThisPollsBlogPosts(jsonResponseFromAmazon);
+        statusCodes = await processBlogPostDataForCurrentPoll(formattedBlogPostData);
+    }
 
     return statusCodes;
 };
@@ -46,7 +52,7 @@ var collectDataForThisPollsBlogPosts = async (response) => {
         var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
         var id = blogPosts.items[i].id;
 
-        if (!await dynamo.isPublished(id, ENV)) {
+        if ('DEV' === ENVIRONMENT_IN_USE || !await dynamo.isPublished(id, dbSchema)) {
             // Only add URLs to be posted, to the list (not the number-to-check)
             blogPostInfoToBeSaved[unTweetedBlogPostCounter++] = {
                 id,
@@ -65,7 +71,7 @@ var collectDataForThisPollsBlogPosts = async (response) => {
 
     var newBlogData;
     if (uniqueSectionNames.size > 0) {
-        newBlogData = await dynamo.getBlogDetails(uniqueSectionNames, ENV);
+        newBlogData = await dynamo.getBlogDetails(uniqueSectionNames, dbSchema);
         newBlogData.body = blogPostInfoToBeSaved;
     } else {
         newBlogData = {statusCode: 200, body: []};
@@ -78,12 +84,12 @@ var processBlogPostDataForCurrentPoll = async (currPollNewBlogPostDetails) => {
     if (currPollNewBlogPostDetails.statusCode === 200) {
         for (var item of currPollNewBlogPostDetails.body) {
             if (currPollNewBlogPostDetails.blogLookupInfo.hasOwnProperty(item.section)) {
-                await recordTweet(item, ENV);
+                await recordTweet(item, dbSchema);
                 var tweetContent =
                     'The AWS ' + currPollNewBlogPostDetails.blogLookupInfo[item.section][0] +
                     ' Blog #' + currPollNewBlogPostDetails.blogLookupInfo[item.section][1] +
                     '\n' + item.url +
-                    '\n' + await authorsList(item, ENV);
+                    '\n' + await authorsList(item, dbSchema);
 
                 try {
                     if (TWITTER_ON) {
@@ -207,6 +213,29 @@ function handleError(fn) {
             console.error(`Oops!`, err);
         });
     }
+}
+
+var environmentSetup = async () => {
+    const ENCODING = 'utf8';
+    const STATIC_DATASOURCE = './dev_data.json';
+
+    var jsonDatasource;
+    if ('DEV' === ENVIRONMENT_IN_USE) {
+        dbSchema = 'TW.DEV.';
+        var stats = await fs.promises.stat(STATIC_DATASOURCE);
+        if (stats.isFile()) {
+            jsonDatasource = { data: JSON.parse(await fs.promises.readFile(STATIC_DATASOURCE, ENCODING))}; // delete file to see if this works with no file present!
+        }
+    } else if ('PROD' === ENVIRONMENT_IN_USE) {
+        dbSchema = 'TW.PROD.';
+        jsonDatasource =  await axios.get(awsBlogUrl, {
+            responseEncoding: ENCODING
+        });
+    } else {
+        throw new Error('Environment incorrectly setup! Env is: ' + ENVIRONMENT_IN_USE);
+    }
+
+    return jsonDatasource;
 }
 
 module.exports = {
