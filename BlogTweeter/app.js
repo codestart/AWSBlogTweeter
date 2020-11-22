@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { count } = require('console');
 const fs = require('fs');
 
 const dynamo = require('./src/dynamodb.js');
@@ -52,7 +53,7 @@ var collectDataForThisPollsBlogPosts = async (response) => {
         var section = changeableUrl.substr(0, changeableUrl.indexOf('/'));
         var id = blogPosts.items[i].id;
 
-        if ('DEV' === ENVIRONMENT_IN_USE || !await dynamo.isPublished(id, dbSchema)) {
+        if (!await dynamo.isPublished(id, dbSchema)) {
             // Only add URLs to be posted, to the list (not the number-to-check)
             blogPostInfoToBeSaved[unTweetedBlogPostCounter++] = {
                 id,
@@ -204,27 +205,44 @@ var generateAuthorList = (authors) => {
     return authorList == '' ? '' : STUB + authorList;
 };
 
-// make a function to handle that error
-// https://youtu.be/DwQJ_NPQWWo
-function handleError(fn) {
-    return function (...params) {
-        return fn (...params).catch(function (err) {
-            // Do something with the error
-            console.error(`Oops!`, err);
-        });
-    }
-}
+// // make a function to handle that error
+// // https://youtu.be/DwQJ_NPQWWo
+// function handleError(fn) {
+//     return function (...params) {
+//         return fn (...params).catch(function (err) {
+//             // Do something with the error
+//             console.error(`Oops!`, err);
+//         });
+//     }
+// }
 
 var environmentSetup = async () => {
     const ENCODING = 'utf8';
     const STATIC_DATASOURCE = './dev_data.json';
 
-    var jsonDatasource;
+    var jsonDatasource = {};
     if ('DEV' === ENVIRONMENT_IN_USE) {
         dbSchema = 'TW.DEV.';
         var stats = await fs.promises.stat(STATIC_DATASOURCE);
+        var tempFileData;
         if (stats.isFile()) {
-            jsonDatasource = { data: JSON.parse(await fs.promises.readFile(STATIC_DATASOURCE, ENCODING))}; // delete file to see if this works with no file present!
+            tempFileData = { data: JSON.parse(await fs.promises.readFile(STATIC_DATASOURCE, ENCODING))}; // delete file to see if this works with no file present!
+        }
+
+        if (NUMBER_TO_CHECK < tempFileData.data.items.length) {
+            var countOfItemsAdded = 0;
+            var tempArr = [];
+            jsonDatasource.data = {};
+
+            jsonDatasource.data.fieldTypes = tempFileData.data.fieldTypes;
+            for (var item of tempFileData.data.items) {
+                tempArr.push(item);
+                if (++countOfItemsAdded == NUMBER_TO_CHECK) break;
+            }
+            jsonDatasource.data.items = tempArr;
+            jsonDatasource.data.metadata = tempFileData.data.metadata;
+        } else {
+            jsonDatasource = tempFileData;
         }
     } else if ('PROD' === ENVIRONMENT_IN_USE) {
         dbSchema = 'TW.PROD.';

@@ -12,7 +12,7 @@ var standardReporter = (err, data) => {
     else console.log('SES Success:', data); // successful response
 };
 
-var sendEmailNotification = (subject, body) => {
+var sendEmailNotification = async (subject, body) => {
     var params = {
         Destination: {
             ToAddresses: ["andoni.oc@gmail.com"]
@@ -32,9 +32,7 @@ var sendEmailNotification = (subject, body) => {
         Source: "andoni.oc@gmail.com"
     };
 
-    return new Promise(() => ses.sendEmail(params, standardReporter), () => {
-        console.log('Error in Email Send.');
-    });
+    await ses.sendEmail(params).promise();
 };
 
 module.exports = {

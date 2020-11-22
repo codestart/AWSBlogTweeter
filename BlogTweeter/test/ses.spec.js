@@ -1,7 +1,7 @@
 describe("Simple Email Service", function () {
     var sesFile = require('../src/ses.js');
 
-    it("Calls the Send Email Service with the correct values", () => {
+    it("Calls the Send Email Service with the correct values", async () => {
         var params = {
             Destination: {
                 ToAddresses: ["andoni.oc@gmail.com"]
@@ -23,7 +23,7 @@ describe("Simple Email Service", function () {
 
         spyOn(sesFile.ses, "sendEmail");
 
-        sesFile.sendEmailNotification("subject goes here", "body goes here");
+        await sesFile.sendEmailNotification("subject goes here", "body goes here");
 
         expect(sesFile.ses.sendEmail).toHaveBeenCalledWith(params, sesFile.standardReporter);
     });
