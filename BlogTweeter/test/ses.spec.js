@@ -21,10 +21,10 @@ describe("Simple Email Service", function () {
             Source: "andoni.oc@gmail.com"
         };
 
-        spyOn(sesFile.ses, "sendEmail");
+        spyOn(sesFile.ses, "sendEmail").and.callThrough();
 
-        await sesFile.sendEmailNotification("subject goes here", "body goes here");
+        sesFile.sendEmailNotification("subject goes here", "body goes here");
 
-        expect(sesFile.ses.sendEmail).toHaveBeenCalledWith(params, sesFile.standardReporter);
+        expect(sesFile.ses.sendEmail).toHaveBeenCalledWith(params);
     });
 });

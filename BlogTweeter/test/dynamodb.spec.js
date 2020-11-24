@@ -23,15 +23,15 @@ describe("DynamoDB", function () {
     });
 
     it("should handle an author name", function () {
-        spyOn(DynamoDB, 'checkAuthorName').withArgs('Andoni', 'TW.DEV');
-        expectAsync(DynamoDB.handleAuthorName('Andoni', 'TW.DEV')).toBeResolved();
+        spyOn(DynamoDB, 'replaceWithTwitterHandleIfKnown').withArgs('Andoni', 'TW.DEV.').and.callThrough();
+        expectAsync(DynamoDB.handleOneAuthorName('Andoni', 'TW.DEV.')).toBeResolved();
     });
 
     it("should get the correct details of the blog", function () {
         var params = {
             RequestItems: {
                 [`ABC_AWS_BLOGS`]: {
-                    Keys: ['a', 'b'],
+                    Keys: [Object({ URLSection: Object({ S: 'a' }) }), Object({ URLSection: Object({ S: 'b' }) })],
                     ProjectionExpression: 'URLSection, BlogSection, Hashtag'
                 }
             }
@@ -39,7 +39,7 @@ describe("DynamoDB", function () {
 
         spyOn(DynamoDB.ddb, "batchGetItem");
 
-        DynamoDB.getBlogDetails(['a', 'b'], {}, 'ABC_');
+        DynamoDB.getBlogDetails(['a', 'b'], 'ABC_');
 
         expect(DynamoDB.ddb.batchGetItem).toHaveBeenCalledWith(params);
     });
@@ -55,9 +55,9 @@ describe("DynamoDB", function () {
             KeyConditionExpression: 'AuthorName = :s',
             ProjectionExpression: 'TwitterHandle'
         };
-        spyOn(DynamoDB.ddb, "query");
+        spyOn(DynamoDB.ddb, "query").and.callThrough();
 
-        DynamoDB.checkAuthorName('JohnDoe', 'ABC_');
+        DynamoDB.replaceWithTwitterHandleIfKnown('JohnDoe', 'ABC_');
 
         expect(DynamoDB.ddb.query).toHaveBeenCalledWith(params);
     });
@@ -77,7 +77,7 @@ describe("DynamoDB", function () {
             FilterExpression: 'Published = :pub',
             ProjectionExpression: 'ID'
         };
-        spyOn(DynamoDB.ddb, "query");
+        spyOn(DynamoDB.ddb, "query").and.callThrough();
 
         DynamoDB.isPublished('abc123', 'ABC_');
 
