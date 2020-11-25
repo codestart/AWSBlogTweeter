@@ -40,35 +40,3 @@ sam deploy --template-file C:\Users\Lakelands\Desktop\NodeJS\AWSBlogTweeter\pack
 // Or: with default location for the template file and a specific credential from the ./.aws/credentials file called [deployer]
 sam deploy --template-file C:\Users\Lakelands\Desktop\NodeJS\AWSBlogTweeter\packaged.yaml --stack-name aws-blog-tweeter --capabilities CAPABILITY_IAM --profile deployer
 
-
-
-
-
-
-
-[default] - awsBlogTweeterDev
-aws_access_key_id=AKIAR26SUDEWHT6IQ3XW
-aws_secret_access_key=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
-region=eu-west-1
-output=json
-
-AAA_awsBlogTweeterDev 
-
-Used for development and debugging locally on the laptop - Has mirror of permissions associated with the live role only that they point at the TW.DEV tables in the DB
-
-==========================================================================================================
-
-[deployer] - ServerlessDevAndoni
-aws_access_key_id=AKIAR26SUDEWO35QM5WV
-aws_secret_access_key=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
-region=eu-west-1
-output=json
-
-Allow_Andoni_Send_Emails
-AWSCloudFormationFullAccess
-AWSLambdaFullAccess
-IAMFullAccess
-AmazonDynamoDBFullAccess 
-
-The act of deploying needs more access. This User and their permissions are for that.
-
