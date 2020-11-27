@@ -1,9 +1,6 @@
 // See IAM breakdown below the step-by-step.
-// Test Commit (create HEAD!)
 
 // Start docker for the build to use
-
-
 
 // Delete previous build (PowerShell terminal in VSCode):
 // Note: changes to template.yml and other files need a delete & build before they are in play.
@@ -12,8 +9,6 @@ del .\packaged.yaml
 
 // Build the docker instance as per thhe template.yml
 sam build --use-container
-// Or:
-sam build --use-container --template config\template.yml
 
 // Had up upper-case the params in the file to match the env vars in the code
 // -d port is needed for connecting to the debugger only

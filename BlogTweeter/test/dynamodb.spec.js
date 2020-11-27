@@ -84,23 +84,6 @@ describe("DynamoDB", function () {
         expect(DynamoDB.ddb.query).toHaveBeenCalledWith(params);
     });
 
-    it("should get the correct details of the blog", function () {
-        var params = {
-            RequestItems: {
-                [`ABC_AWS_BLOGS`]: {
-                    Keys: ['a', 'b'],
-                    ProjectionExpression: 'URLSection, BlogSection, Hashtag'
-                }
-            }
-        };
-
-        spyOn(DynamoDB.ddb, "batchGetItem");
-
-        DynamoDB.getBlogDetails(['a', 'b'], {}, 'ABC_');
-
-        expect(DynamoDB.ddb.batchGetItem).toHaveBeenCalledWith(params);
-    });
-
     it("should check the author's name against the DB", () => {
         var params = {
             TableName: 'ABC_TWITTER_HANDLES',
@@ -114,7 +97,7 @@ describe("DynamoDB", function () {
         };
         spyOn(DynamoDB.ddb, "query");
 
-        DynamoDB.checkAuthorName('JohnDoe', 'ABC_');
+        DynamoDB.replaceWithTwitterHandleIfKnown('JohnDoe', 'ABC_');
 
         expect(DynamoDB.ddb.query).toHaveBeenCalledWith(params);
     });
