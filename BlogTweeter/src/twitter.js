@@ -3,13 +3,13 @@ var fs = require('fs');
 
 const ses = require('./ses.js');
 
-var twitterAccess = async (twitterAccountName) => {
+var twitterAccessKeys = async (twitterAccountName) => {
     var doc = JSON.parse(fs.readFileSync('./src/twitter.json', 'utf8'));
     return new Twitter(doc[twitterAccountName]);
 };
 
 var sendTweet = async (twitterAccountName, tweetBodyText) => {
-    const twitterAccount = await twitterAccess(twitterAccountName);
+    const twitterAccount = await twitterAccessKeys(twitterAccountName);
     return await postTweetToTwitter(twitterAccount, tweetBodyText);
 };
 
@@ -33,7 +33,8 @@ var isFollowing = async (twitterAccount, twitterHandle) => {
             if (null != response && response.length > 0) {
                 var firstResponse = response[0];
                 for (var status of firstResponse.connections) {
-                    if (status === 'following') {
+                    if (status === 'following' || status === 'blocking') {
+                        console.log('Twitter friendships/lookup status is:', status);
                         returnValue = true;
                     }
                 }
