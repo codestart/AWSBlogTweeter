@@ -229,7 +229,7 @@ var incAuthorPostCount = async (authorName, dbSchema) => {
 };
 
 var handleOneAuthorName = async (authorName, dbSchema) => {
-    var authorNameOrTwitter = authorName;
+    var authorNameOrTwitter = DEFAULT_HANDLE;
     // Turn off Twitter Handles (for now! - 1st Dec. 2020)
     // var authorNameOrTwitter = await replaceWithTwitterHandleIfKnown(authorName, dbSchema);
     var author = await saveAuthorNameToDatabase(authorName, authorNameOrTwitter, dbSchema).catch((err) => {
