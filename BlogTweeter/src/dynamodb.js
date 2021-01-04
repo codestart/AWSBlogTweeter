@@ -44,7 +44,7 @@ var getBlogDetails = async (uniqueSectionNameList, dbSchema) => {
     }
 };
 
-var replaceWithTwitterHandleIfKnown = async (authorName, dbSchema) => {
+var getTwitterHandle = async (authorName, dbSchema) => {
     var params = {
         TableName: `${dbSchema}TWITTER_HANDLES`,
         ExpressionAttributeValues: {
@@ -59,7 +59,7 @@ var replaceWithTwitterHandleIfKnown = async (authorName, dbSchema) => {
     try {
         var twitterHandle = await ddb.query(params).promise();
 
-        return twitterHandle.Count == 0 ? authorName : twitterHandle.Items[0].TwitterHandle.S;
+        return twitterHandle.Count == 0 ? undefined : twitterHandle.Items[0].TwitterHandle.S;
     } catch (error) {
         console.log('Error is:', error);
         return {
@@ -229,34 +229,32 @@ var incAuthorPostCount = async (authorName, dbSchema) => {
 };
 
 var handleOneAuthorName = async (authorName, dbSchema) => {
-    var authorNameOrTwitter = DEFAULT_HANDLE;
-    // Turn off Twitter Handles (for now! - 1st Dec. 2020)
-    // var authorNameOrTwitter = await replaceWithTwitterHandleIfKnown(authorName, dbSchema);
-    var author = await saveAuthorNameToDatabase(authorName, authorNameOrTwitter, dbSchema).catch((err) => {
+    var twitterHandle = await getTwitterHandle(authorName, dbSchema);
+    var author = await saveAuthorNameToDatabase(authorName, twitterHandle, dbSchema).catch((err) => {
         console.log('err:', JSON.stringify(err, undefined, 4));
     });
 
     return author;
 };
 
-var saveAuthorNameToDatabase = async (authorName, authorNameOrTwitterIfAvailable, dbSchema) => {
+var saveAuthorNameToDatabase = async (authorName, twitterHandle, dbSchema) => {
     var authorReference = authorName;
     var isTwitterHandle = false;
 
-    if (authorNameOrTwitterIfAvailable === DEFAULT_HANDLE) {
+    if (twitterHandle === DEFAULT_HANDLE) {
         console.log('Seen before, blank twitter handle.');
         await incAuthorPostCount(authorName, dbSchema);
-    } else if (authorName !== authorNameOrTwitterIfAvailable && authorNameOrTwitterIfAvailable !== 'NONE') {
-        console.log('Seen before, twitter handle is:', authorNameOrTwitterIfAvailable);
-        if(isValidTwitterHandle(authorNameOrTwitterIfAvailable)) {
-            authorReference = authorNameOrTwitterIfAvailable;
+    } else if (undefined !== twitterHandle && twitterHandle !== 'NONE') {
+        console.log('Seen before, twitter handle is:', twitterHandle);
+        if(isValidTwitterHandle(twitterHandle)) {
+            authorReference = twitterHandle;
             isTwitterHandle = true; // Used later in whether to follow this author.
         }
         await incAuthorPostCount(authorName, dbSchema);
-    } else if (authorNameOrTwitterIfAvailable === 'NONE') {
+    } else if (twitterHandle === 'NONE') {
         console.log('Seen before, no twitter handle.');
         await incAuthorPostCount(authorName, dbSchema);
-    } else if (authorName === authorNameOrTwitterIfAvailable) {
+    } else if (undefined === twitterHandle) {
         console.log('Never seen before, adding...');
         await addNewAuthor(authorName, dbSchema);
         authorReference += NEW_AUTHOR_DECORATION;
@@ -317,7 +315,7 @@ module.exports = {
     ddb,
     isPublished,
     getBlogDetails,
-    replaceWithTwitterHandleIfKnown,
+    replaceWithTwitterHandleIfKnown: getTwitterHandle,
     handleOneAuthorName,
     recordTweetVitals,
     isValidTwitterHandle,

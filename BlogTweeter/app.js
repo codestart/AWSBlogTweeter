@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { count } = require('console');
 const fs = require('fs');
 
 const dynamo = require('./src/dynamodb.js');
@@ -158,6 +157,13 @@ var authorsList = async (elementData, env) => {
         }
 
         var author = await dynamo.handleOneAuthorName(authorName, env);
+
+        // Override Twitter-handle mentions system:
+        author = {
+            authorReference: authorName,
+            isTwitterHandle: false
+        };
+
         finalAuthorList.push(await followAuthor(author));
     }
 

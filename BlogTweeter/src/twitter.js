@@ -25,7 +25,7 @@ var postTweetToTwitter = async (twitterAccount, tweetBodyText) => twitterAccount
     });
 
 var isFollowing = async (twitterAccount, twitterHandle) => {
-    var returnValue = false;
+    var returnValue = true;
     await twitterAccessKeys(twitterAccount).then(async (response) => {
         await response.get('friendships/lookup', {
             screen_name: twitterHandle
@@ -33,10 +33,11 @@ var isFollowing = async (twitterAccount, twitterHandle) => {
             if (null != response && response.length > 0) {
                 var firstResponse = response[0];
                 for (var status of firstResponse.connections) {
-                    if (status === 'following' || status === 'blocking') {
-                        console.log('Twitter friendships/lookup status is:', status);
-                        returnValue = true;
+                    // Values for connections can be: following, following_requested, followed_by, none, blocking, muting.
+                    if (status === 'none') {
+                        returnValue = false;
                     }
+                    console.log('isFollowing - friendships/lookup - status is:', JSON.stringify(status, undefined, 4));
                 }
             }
             return returnValue;
@@ -47,16 +48,17 @@ var isFollowing = async (twitterAccount, twitterHandle) => {
     return returnValue;
 };
 
-var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
+var unconditionalFollow = async (twitterAccount, twitterHandle, enableNotifications) => {
     twitterAccessKeys(twitterAccount).then((response) => response.post('friendships/create', {
         screen_name: twitterHandle,
-        follow: notifyUser
+        follow: enableNotifications
     }, async (error, twitterAccountDetails, response) => {
         if (error) {
             console.log('Twitter.js Error - unconditionalFollow()', JSON.stringify(error, undefined, 4));
             await ses.sendEmailNotification('Twitter.js Error - unconditionalFollow()', JSON.stringify(error, undefined, 4));
         } else {
             console.log('TW3:', twitterAccountDetails);
+            await ses.sendEmailNotification('TW3:', JSON.stringify(twitterAccountDetails, undefined, 4));
             // console.log(response); // Raw response object.
         }
     }));
@@ -65,8 +67,6 @@ var unconditionalFollow = async (twitterAccount, twitterHandle, notifyUser) => {
 var follow = async (twitterAccount, twitterHandle) => {
     if (!await isFollowing(twitterAccount, twitterHandle)) {
         await unconditionalFollow(twitterAccount, twitterHandle, false);
-    } else {
-        console.log('Following', twitterHandle, ' already');
     }
 };
 

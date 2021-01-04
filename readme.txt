@@ -29,9 +29,7 @@ sam package --s3-bucket awsblogtweeter --output-template-file packaged.yaml --pr
 
 // Then this command is given to you by the output of the previous command:
 // Once you get the IAM Role created correctly
-// Then be sure that your function in your template file has a name you don't use already!
+// Then be sure that your function in your template file has a name you don't use already in AWS CloudFormation!
 // Then:
-sam deploy --template-file C:\Users\Lakelands\Desktop\NodeJS\AWSBlogTweeter\packaged.yaml --stack-name aws-blog-tweeter --capabilities CAPABILITY_IAM
-// Or: with default location for the template file and a specific credential from the ./.aws/credentials file called [deployer]
-sam deploy --template-file C:\Users\Lakelands\Desktop\NodeJS\AWSBlogTweeter\packaged.yaml --stack-name aws-blog-tweeter --capabilities CAPABILITY_IAM --profile deployer
+sam deploy --template-file C:\Users\Lakelands\Desktop\NodeJS\AWSBlogTweeter\packaged.yaml --stack-name aws-blog-tweeter-green --capabilities CAPABILITY_IAM --profile deployer
 
