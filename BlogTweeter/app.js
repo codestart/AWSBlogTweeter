@@ -159,6 +159,7 @@ var authorsList = async (elementData, env) => {
         var author = await dynamo.handleOneAuthorName(authorName, env);
 
         // Override Twitter-handle mentions system:
+        if (author.authorReference.indexOf('*') != -1) authorName += '*';
         author = {
             authorReference: authorName,
             isTwitterHandle: false
