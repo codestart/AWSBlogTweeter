@@ -1,5 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
+const { ddb } = require('./src/dynamodb.js');
 
 const dynamo = require('./src/dynamodb.js');
 const ses = require('./src/ses.js');
@@ -94,7 +95,10 @@ var processBlogPostDataForCurrentPoll = async (currPollNewBlogPostDetails) => {
                 try {
                     if (TWITTER_ON) {
                         console.log('TWITTER_ON=true - Tweeting:', JSON.stringify(tweetContent, undefined, 4));
-                        await twitter.sendTweet(TWITTER_ACCOUNT, tweetContent);
+                        var isError = await twitter.sendTweet(TWITTER_ACCOUNT, tweetContent);
+                        if (isError) {
+                            await dynamo.setPublished(item.id, false, dbSchema);
+                        }
                     } else {
                         console.log('TWITTER_ON=false - NOT Tweeting:', tweetContent);
                         await ses.sendEmailNotification('Tweet Not Sent', 'Twitter Off:\n' + tweetContent);

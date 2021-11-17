@@ -96,6 +96,32 @@ var isPublished = async (blogId, dbSchema) => {
     }
 };
 
+var setPublished = async (blogId, published, dbSchema) => {
+    var paramsUpdate = {
+        TableName: `${dbSchema}BLOG_POSTS`,
+        Key: {
+            'ID': {
+                S: blogId
+            }
+        },
+        UpdateExpression: 'SET Published :b',
+        ExpressionAttributeValues: {
+            ':b': {
+                BOOL: published
+            }
+        }
+    }
+
+    try {
+        // console.log(JSON.stringify(paramsUpdate, undefined, 4));
+        await ddb.updateItem(paramsUpdate).promise().catch((err) => {
+            console.log('Mark item published status (to ' + published + '):', err);
+        });
+    } catch (error) {
+        console.log('Update Error setPublished() is:', error);
+    }
+};
+
 // Default initial value for Twitter Handle is blank NOT 'NONE' until it has been searched-for!
 // This does not need to be synch'd once it is done!
 var addNewAuthor = async (authorName, dbSchema) => {
@@ -314,6 +340,7 @@ var isValidTwitterHandle = handle => {
 module.exports = {
     ddb,
     isPublished,
+    setPublished,
     getBlogDetails,
     replaceWithTwitterHandleIfKnown: getTwitterHandle,
     handleOneAuthorName,

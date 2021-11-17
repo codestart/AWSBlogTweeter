@@ -13,16 +13,24 @@ var sendTweet = async (twitterAccountName, tweetBodyText) => {
     return await postTweetToTwitter(twitterAccount, tweetBodyText);
 };
 
-var postTweetToTwitter = async (twitterAccount, tweetBodyText) => twitterAccount.post('statuses/update', {
-        status: tweetBodyText
-    }, async (error, tweet) => {
-        if (error) {
-            console.log('Twitter.js Error - sendTweet()', JSON.stringify(error, undefined, 4));
-            await ses.sendEmailNotification('Twitter.js Error - sendTweet()', JSON.stringify(error, undefined, 4));
-        } else {
-            console.log('Sending tweet:', tweet.id_str, '\n', 'Text:', tweet.text);
-        }
-    });
+var postTweetToTwitter = async (twitterAccount, tweetBodyText) => {
+    var isError = false;
+
+    await twitterAccount.post('statuses/update', {
+            status: tweetBodyText
+        }, async (error, tweet) => {
+            if (error) {
+                console.log('Twitter.js Error - sendTweet()', JSON.stringify(error, undefined, 4) + '\n\n' + tweetBodyText);
+                await ses.sendEmailNotification('Twitter.js Error - sendTweet()', JSON.stringify(error, undefined, 4) + '\n\n' + tweetBodyText);
+                isError = true;
+            } else {
+                console.log('Sending tweet:', tweet.id_str, '\n', 'Text:', tweet.text);
+            }
+        });
+
+    if(isError) console.log('isError - 2:', isError);
+    return isError;
+};
 
 var isFollowing = async (twitterAccount, twitterHandle) => {
     var returnValue = true;
